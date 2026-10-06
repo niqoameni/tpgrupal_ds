@@ -1,9 +1,6 @@
 package com.utn.frm.desarrollosoftware.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
+import jakarta.persistence.*;
 
 import java.util.Date;
 
@@ -17,6 +14,20 @@ public class AuditoriaApp {
     @Column(nullable = false)
     protected Date fechaBaja;
 
+    @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
     protected Date fechaModificacion;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    protected Usuario usuarioCarga;
+
+    @ManyToOne
+    protected Usuario usuarioBaja;
+    
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    protected Usuario usuarioModificacion;
+
+
 }
