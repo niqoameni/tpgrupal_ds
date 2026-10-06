@@ -8,6 +8,23 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <!-- Entidades a persistir -->
+        <class>com.utn.frm.desarrollosoftware.entities.AuditoriaApp</class>
+        <class>com.utn.frm.desarrollosoftware.entities.EntityId</class>
+        <class>com.utn.frm.desarrollosoftware.entities.FacturaVenta</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Usuario</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Articulo</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Cliente</class>
+        <class>com.utn.frm.desarrollosoftware.entities.CondicionIva</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Contacto</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Domicilio</class>
+        <class>com.utn.frm.desarrollosoftware.entities.FacturaVentaDetalle</class>
+        <class>com.utn.frm.desarrollosoftware.entities.ListaPrecio</class>
+        <class>com.utn.frm.desarrollosoftware.entities.ListaPrecioArticulo</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Marca</class>
+        <class>com.utn.frm.desarrollosoftware.entities.PuntoVenta</class>
+        <class>com.utn.frm.desarrollosoftware.entities.Rubro</class>
+        <class>com.utn.frm.desarrollosoftware.entities.TipoMoneda</class>
+
 
         <properties>
             <!-- Conexión JDBC a MySQL -->
