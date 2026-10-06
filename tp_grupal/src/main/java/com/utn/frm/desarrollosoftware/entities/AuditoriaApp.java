@@ -24,7 +24,7 @@ public class AuditoriaApp {
 
     @ManyToOne
     protected Usuario usuarioBaja;
-    
+
     @ManyToOne
     @JoinColumn(nullable = false)
     protected Usuario usuarioModificacion;
