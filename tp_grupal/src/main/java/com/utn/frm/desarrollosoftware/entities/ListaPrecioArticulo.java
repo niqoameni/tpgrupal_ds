@@ -18,6 +18,9 @@ public class ListaPrecioArticulo extends AuditoriaApp{
     @JoinColumn(nullable = false)
     private Articulo articulo;
 
+    public ListaPrecioArticulo() {
+    }
+
     public ListaPrecioArticulo(Usuario usuarioCarga, ListaPrecio listaPrecio, double precioVenta, Articulo articulo) {
         super(usuarioCarga);
         this.listaPrecio = listaPrecio;

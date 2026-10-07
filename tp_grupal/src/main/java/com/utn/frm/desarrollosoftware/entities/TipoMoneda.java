@@ -18,6 +18,9 @@ public class TipoMoneda extends AuditoriaApp{
     @Column(nullable = false)
     private String simbolo;
 
+    public TipoMoneda() {
+    }
+
     public TipoMoneda(Usuario usuarioCarga, String codigoAfip, String denominacion, String simbolo) {
         super(usuarioCarga);
         this.codigoAfip = codigoAfip;

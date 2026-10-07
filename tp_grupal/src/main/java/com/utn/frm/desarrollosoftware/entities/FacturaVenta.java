@@ -54,6 +54,9 @@ public class FacturaVenta extends  AuditoriaApp{
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL)
     private List<FacturaVentaDetalle> detalles;
 
+    public FacturaVenta() {
+    }
+
     public FacturaVenta(Usuario usuarioCarga, Cliente cliente, CondicionIva condicionIva, TipoMoneda tipoMoneda, PuntoVenta puntoVenta, double importeTotal, String estado) {
         super(usuarioCarga);
         this.fechaEmision = new Date();
@@ -85,6 +88,11 @@ public class FacturaVenta extends  AuditoriaApp{
         this.fechaAnulacion = fechaAnulacion;
         this.observaciones = observaciones;
         this.detalles = new ArrayList<>();
+    }
+
+    public void addDetalle(FacturaVentaDetalle detalle){
+        this.detalles.add(detalle);
+        detalle.setFactura(this);
     }
 
     public Long getNumero() {

@@ -21,6 +21,9 @@ public class Cliente extends AuditoriaApp{
     @JoinColumn(nullable = false)
     private Domicilio domicilio;
 
+    public Cliente() {
+    }
+
     public Cliente(Usuario usuarioCarga, String cuitCuil, String denominacion, Contacto contacto, Domicilio domicilio) {
         super(usuarioCarga);
         this.cuitCuil = cuitCuil;

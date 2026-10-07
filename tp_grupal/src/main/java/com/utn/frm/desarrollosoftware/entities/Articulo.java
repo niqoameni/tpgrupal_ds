@@ -22,6 +22,9 @@ public class Articulo extends AuditoriaApp{
     @ManyToOne
     private Marca marca;
 
+    public Articulo() {
+    }
+
     public Articulo(Usuario usuarioCarga, String codigo, String denominacion) {
         super(usuarioCarga);
         this.codigo = codigo;

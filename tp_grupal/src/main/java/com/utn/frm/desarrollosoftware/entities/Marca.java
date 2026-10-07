@@ -15,6 +15,9 @@ public class Marca extends AuditoriaApp{
     @Column(nullable = false)
     private Integer codigo;
 
+    public Marca() {
+    }
+
     public Marca(Usuario usuarioCarga, String denominacion, Integer codigo) {
         super(usuarioCarga);
         this.denominacion = denominacion;

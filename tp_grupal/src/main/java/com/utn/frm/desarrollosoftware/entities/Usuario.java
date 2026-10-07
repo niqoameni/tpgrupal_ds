@@ -21,6 +21,9 @@ public class Usuario extends EntityId{
     @Column(nullable = false)
     private String apellido;
 
+    public Usuario() {
+    }
+
     public Usuario(String usuario, String clave, String nombre, String apellido) {
         this.usuario = usuario;
         this.clave = clave;

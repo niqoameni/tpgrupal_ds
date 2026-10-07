@@ -15,6 +15,9 @@ public class CondicionIva extends AuditoriaApp{
     @Column(nullable = false)
     private String denominacion;
 
+    public CondicionIva() {
+    }
+
     public CondicionIva(Usuario usuarioCarga, String denominacion, int codigoAfip) {
         super(usuarioCarga);
         this.denominacion = denominacion;

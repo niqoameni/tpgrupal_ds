@@ -28,6 +28,9 @@ public class AuditoriaApp extends EntityId{
     @JoinColumn(nullable = false)
     protected Usuario usuarioModificacion;
 
+    public AuditoriaApp() {
+    }
+
     public AuditoriaApp(Usuario usuarioCarga) {
         this.fechaAlta = new Date();
         this.fechaModificacion = this.fechaAlta;

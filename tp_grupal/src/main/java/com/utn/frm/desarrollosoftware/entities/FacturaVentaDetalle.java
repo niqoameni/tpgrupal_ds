@@ -30,24 +30,27 @@ public class FacturaVentaDetalle extends EntityId{
     private double importeNeto;
     private double importeIva;
 
-    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, double cantidad, double precioUnitario, double importeSubtotal) {
+    public FacturaVentaDetalle() {
+    }
+
+    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, double cantidad, double precioUnitario) {
         this.factura = factura;
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
-        this.importeSubtotal = importeSubtotal;
+        this.importeSubtotal = cantidad * precioUnitario;
     }
 
-    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, String descripcion, double cantidad, double precioUnitario, double importeSubtotal, double porcentajeBonificacion, double importeNeto, double importeIva) {
+    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, String descripcion, double cantidad, double precioUnitario, double porcentajeBonificacion) {
         this.factura = factura;
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.descripcion = descripcion;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
-        this.importeSubtotal = importeSubtotal;
+        this.importeSubtotal = (cantidad * precioUnitario) * 1.21;
         this.porcentajeBonificacion = porcentajeBonificacion;
-        this.importeNeto = importeNeto;
-        this.importeIva = importeIva;
+        this.importeNeto = cantidad * precioUnitario;
+        this.importeIva = this.importeNeto * 0.21;
     }
 
     public FacturaVenta getFactura() {
