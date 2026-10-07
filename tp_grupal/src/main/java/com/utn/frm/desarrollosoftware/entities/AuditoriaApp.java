@@ -2,17 +2,15 @@ package com.utn.frm.desarrollosoftware.entities;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
 import java.util.Date;
 
 @MappedSuperclass
-public class AuditoriaApp {
+public class AuditoriaApp extends EntityId{
     @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
     protected Date fechaAlta;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(nullable = false)
     protected Date fechaBaja;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -30,7 +28,7 @@ public class AuditoriaApp {
     @JoinColumn(nullable = false)
     protected Usuario usuarioModificacion;
 
-    public AuditoriaApp(Usuario usuarioCarga, Usuario usuarioModificacion) {
+    public AuditoriaApp(Usuario usuarioCarga) {
         this.fechaAlta = new Date();
         this.fechaModificacion = this.fechaAlta;
         this.usuarioCarga = usuarioCarga;
