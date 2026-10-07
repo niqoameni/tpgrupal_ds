@@ -233,10 +233,10 @@ public class FacturaVenta extends  AuditoriaApp{
                 "id=" + id +
                 ", numero=" + numero +
                 ", fechaEmision=" + fechaEmision +
-                ", cliente=" + cliente +
-                ", condicionIva=" + condicionIva +
-                ", tipoMoneda=" + tipoMoneda +
-                ", puntoVenta=" + puntoVenta +
+                ", cliente=" + cliente.getDenominacion() + " (" + cliente.getCuitCuil() + ")" +
+                ", condicionIva=" + condicionIva.getDenominacion() +
+                ", tipoMoneda=" + tipoMoneda.getDenominacion() +
+                ", puntoVenta=" + puntoVenta.getNumero() +
                 ", importeCobrado=" + importeCobrado +
                 ", importeSaldo=" + importeSaldo +
                 ", importeTotal=" + importeTotal +
@@ -247,13 +247,13 @@ public class FacturaVenta extends  AuditoriaApp{
                 ", estado='" + estado + '\'' +
                 ", fechaAnulacion=" + fechaAnulacion +
                 ", observaciones='" + observaciones + '\'' +
-                ", detalles=" + detalles +
+                ", detalles=" + detalles.size() +
                 ", fechaAlta=" + fechaAlta +
                 ", fechaBaja=" + fechaBaja +
                 ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga +
-                ", usuarioBaja=" + usuarioBaja +
-                ", usuarioModificacion=" + usuarioModificacion +
+                ", usuarioCarga=" + usuarioCarga.getUsuario() +
+                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
+                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
                 '}';
     }
 

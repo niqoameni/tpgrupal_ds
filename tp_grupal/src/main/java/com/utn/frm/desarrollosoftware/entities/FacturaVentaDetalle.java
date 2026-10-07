@@ -129,8 +129,8 @@ public class FacturaVentaDetalle extends EntityId{
     public String toString() {
         return "FacturaVentaDetalle{" +
                 "id=" + id +
-                ", factura=" + factura +
-                ", listaPrecioArticulo=" + listaPrecioArticulo +
+                ", factura=" + factura.getNumero() +
+                ", listaPrecioArticulo=" + listaPrecioArticulo.getId() +
                 ", descripcion='" + descripcion + '\'' +
                 ", cantidad=" + cantidad +
                 ", precioUnitario=" + precioUnitario +

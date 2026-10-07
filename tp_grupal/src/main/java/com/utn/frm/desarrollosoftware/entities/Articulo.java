@@ -77,14 +77,14 @@ public class Articulo extends AuditoriaApp{
                 "id=" + id +
                 ", codigo='" + codigo + '\'' +
                 ", denominacion='" + denominacion + '\'' +
-                ", rubro=" + rubro +
-                ", marca=" + marca +
+                ", rubro=" + rubro.getDenominacion() +
+                ", marca=" + marca.getDenominacion() +
                 ", fechaAlta=" + fechaAlta +
                 ", fechaBaja=" + fechaBaja +
                 ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga +
-                ", usuarioBaja=" + usuarioBaja +
-                ", usuarioModificacion=" + usuarioModificacion +
+                ", usuarioCarga=" + usuarioCarga.getUsuario() +
+                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
+                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
                 '}';
     }
 

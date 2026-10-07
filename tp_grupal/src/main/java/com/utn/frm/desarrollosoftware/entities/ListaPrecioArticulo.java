@@ -56,15 +56,15 @@ public class ListaPrecioArticulo extends AuditoriaApp{
     public String toString() {
         return "ListaPrecioArticulo{" +
                 "id=" + id +
-                ", listaPrecio=" + listaPrecio +
+                ", listaPrecio=" + listaPrecio.getDenominacion() + " (" + listaPrecio.getCodigo() + ")" +
                 ", precioVenta=" + precioVenta +
-                ", articulo=" + articulo +
+                ", articulo=" + articulo.getDenominacion() + " (" + articulo.getCodigo() + ")" +
                 ", fechaAlta=" + fechaAlta +
                 ", fechaBaja=" + fechaBaja +
                 ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga +
-                ", usuarioBaja=" + usuarioBaja +
-                ", usuarioModificacion=" + usuarioModificacion +
+                ", usuarioCarga=" + usuarioCarga.getUsuario() +
+                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
+                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
                 '}';
     }
 

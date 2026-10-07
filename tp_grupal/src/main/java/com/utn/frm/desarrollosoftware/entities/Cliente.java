@@ -75,9 +75,9 @@ public class Cliente extends AuditoriaApp{
                 ", fechaAlta=" + fechaAlta +
                 ", fechaBaja=" + fechaBaja +
                 ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga +
-                ", usuarioBaja=" + usuarioBaja +
-                ", usuarioModificacion=" + usuarioModificacion +
+                ", usuarioCarga=" + usuarioCarga.getUsuario() +
+                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
+                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
                 '}';
     }
 

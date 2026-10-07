@@ -60,11 +60,13 @@ public class Usuario extends EntityId{
     }
 
     @Override
-    public String toString(){
-        return String.format(
-                "Usuario{id='%d', usuario='%s', nombre='%s', apellido='%s'}%n",
-                getId(), usuario, nombre, apellido
-        );
+    public String toString() {
+        return "Usuario{" +
+                "id=" + id +
+                ", usuario='" + usuario + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", apellido='" + apellido + '\'' +
+                '}';
     }
 
     @Override
