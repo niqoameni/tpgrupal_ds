@@ -20,6 +20,7 @@ public class EntityId {
         return id;
     }
 
+    /*
     @Override
     public String toString(){
         return String.format(
@@ -40,4 +41,6 @@ public class EntityId {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+     */
 }
