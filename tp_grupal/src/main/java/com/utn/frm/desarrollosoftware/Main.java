@@ -7,11 +7,6 @@ import jakarta.persistence.Persistence;
 import jakarta.transaction.Transaction;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws ParseException {
@@ -22,54 +17,166 @@ public class Main {
         /*
         ===============================================================================================================
                                         TP GRUPAL 2 - Jakarta Persistence API
-        =============================================================================================================== */ /*
-
+        =============================================================================================================== */
+        
         em.getTransaction().begin();
 
+        // Usuarios:
         Usuario niqoameni = new Usuario("niqoameni", "admin", "Nicolas", "Ameni");
-
-        TipoMoneda pesos = new TipoMoneda(niqoameni, "PES", "Pesos Argentinos", "$");
-        CondicionIva iva = new CondicionIva(niqoameni, "Consumidor Final", 5);
-        PuntoVenta sucursalCentro = new PuntoVenta(niqoameni, 1, "Sucursal Centro", "ELECTRONICA", "Av. San Martin 123");
-        Rubro informatica = new Rubro(niqoameni, "Informatica", 1);
-        Marca samsung = new Marca(niqoameni, "Samsung", 1);
-
-        Contacto contacto1 = new Contacto("ameninicolas@gmail.com", "4450073", "2612414004");
-        Domicilio domicilio1 = new Domicilio("Correa Saa", "1540");
-        Cliente cliente1 = new Cliente(niqoameni, "23447568519", "Nicolas Ameni", contacto1, domicilio1);
-
-
-        Articulo tablet1 = new Articulo(niqoameni, informatica, "ART-001", "Tablet S6 Lite", samsung);
-        ListaPrecio listaMin = new ListaPrecio(niqoameni, "LP-01", "Lista General Minorista");
-        ListaPrecioArticulo la_tablet = new ListaPrecioArticulo(niqoameni, listaMin, 300000.00, tablet1);
-
+        Usuario nicomesa = new Usuario("nicomesa", "123", "Nicolas", "Mesa");
+        Usuario agusbanuls = new Usuario("agusbañuls", "123", "Agustin", "Bañuls");
         em.persist(niqoameni);
+        em.persist(nicomesa);
+        em.persist(agusbanuls);
+
+        // Tipo Moneda:
+        TipoMoneda pesos = new TipoMoneda(niqoameni, "PES", "Pesos Argentinos", "$");
+        TipoMoneda usd = new TipoMoneda(nicomesa, "DOL", "Dolar Estadounidense", "U$S");
+        TipoMoneda euro = new TipoMoneda(nicomesa, "EUR", "Euros", "€");
         em.persist(pesos);
-        em.persist(iva);
+        em.persist(usd);
+        em.persist(euro);
+
+        // Condicion IVA:
+        CondicionIva consumidorFinal = new CondicionIva(niqoameni, "Consumidor Final", 5);
+        CondicionIva responsableIns = new CondicionIva(niqoameni, "Responsable Inscripto", 1);
+        CondicionIva responsableMon = new CondicionIva(niqoameni, "Responsable Monotributo", 6);
+        CondicionIva exento = new CondicionIva(niqoameni, "IVA Sujeto Exento", 4);
+        em.persist(consumidorFinal);
+        em.persist(responsableIns);
+        em.persist(responsableMon);
+        em.persist(exento);
+
+        // Punto Venta:
+        PuntoVenta sucursalCentro = new PuntoVenta(niqoameni, 1, "Sucursal Centro", "ELECTRONICA", "Av. San Martin 123");
+        PuntoVenta sucursalShopping = new PuntoVenta(agusbanuls, 2, "Sucursal de Mendoza Shopping", "ELECTRONICA", "Acceso Este 3280");
+        PuntoVenta casaCentral = new PuntoVenta(agusbanuls, 3, "Ventas Online - Web", "ELECTRONICA", "Av. España 500");
         em.persist(sucursalCentro);
+        em.persist(sucursalShopping);
+        em.persist(casaCentral);
+
+        // Rubro:
+        Rubro informatica = new Rubro(niqoameni, "Informatica", 1);
+        Rubro telefonia = new Rubro(nicomesa, "Telefonia Celular", 2);
+        Rubro perifericos = new Rubro(nicomesa, "Accesorios y Perifericos", 3);
         em.persist(informatica);
+        em.persist(telefonia);
+        em.persist(perifericos);
+
+        // Marca:
+        Marca samsung = new Marca(niqoameni, "Samsung", 1);
+        Marca motorola = new Marca(agusbanuls, "Motorola", 2);
+        Marca redragon = new Marca(agusbanuls, "Redragon", 3);
+        Marca logitech = new Marca(agusbanuls, "Logitech", 4);
         em.persist(samsung);
+        em.persist(motorola);
+        em.persist(redragon);
+        em.persist(logitech);
+
+        // Contacto:
+        Contacto contacto1 = new Contacto("ameninicolas@gmail.com", "4450073", "2612414004");
+        Contacto contacto2 = new Contacto();
+        contacto2.setCelular("2614443334");
+        Contacto contacto3 = new Contacto();
+        contacto3.setEmail("lucianocruz@gmail.com");
         em.persist(contacto1);
+        em.persist(contacto2);
+        em.persist(contacto3);
+
+        // Domicilio:
+        Domicilio domicilio1 = new Domicilio("Correa Saa", "1540");
+        Domicilio domicilio2 = new Domicilio();
+        Domicilio domicilio3 = new Domicilio("Allayme", "2021");
         em.persist(domicilio1);
+        em.persist(domicilio2);
+        em.persist(domicilio3);
+
+        // Cliente:
+        Cliente cliente1 = new Cliente(niqoameni, "23447568519", "Nicolas Ameni", contacto1, domicilio1);
+        Cliente cliente2 = new Cliente(niqoameni, "23445675323", "Nicolas Contrera", contacto2, domicilio2);
+        Cliente cliente3 = new Cliente(nicomesa, "23445445343", "Luciano Cruz", contacto3, domicilio3);
         em.persist(cliente1);
+        em.persist(cliente2);
+        em.persist(cliente3);
+
+        // Articulo:
+        Articulo tablet1 = new Articulo(niqoameni, informatica, "ART-001", "Tablet S6 Lite", samsung);
+        Articulo celular1 = new Articulo(agusbanuls, telefonia, "ART-002", "Motorola Edge 70", motorola);
+        Articulo celular2 = new Articulo(agusbanuls, telefonia, "ART-003", "Samsung Galaxy A16", samsung);
+        Articulo auriculares1 = new Articulo(niqoameni, perifericos, "ART-004", "Redragon Luce H888", redragon);
+        Articulo mouse1 = new Articulo(niqoameni, perifericos, "ART-005", "Mouse inalambrino Logitech M170", logitech);
+        Articulo mouse2 = new Articulo(niqoameni, perifericos, "ART-006", "Mouse Logitech G203", logitech);
         em.persist(tablet1);
+        em.persist(celular1);
+        em.persist(celular2);
+        em.persist(auriculares1);
+        em.persist(mouse1);
+        em.persist(mouse2);
+
+        // Lista Precios:
+        ListaPrecio listaMin = new ListaPrecio(niqoameni, "LP-01", "Lista General Minorista");
+        ListaPrecio listaMay = new ListaPrecio(nicomesa, "LP-02", "Lista General Mayorista");
         em.persist(listaMin);
-        em.persist(la_tablet);
+        em.persist(listaMay);
 
-        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1001L, cliente1, iva, pesos, sucursalCentro, 363000.00, 0.0, 363000.00, null, null, null, null, "EMITIDA", null, null);
+        // Lista Precio-Articulo:
+        ListaPrecioArticulo lmi_tablet1 = new ListaPrecioArticulo(niqoameni, listaMin, 785000.00, tablet1);
+        ListaPrecioArticulo lma_tablet1 = new ListaPrecioArticulo(niqoameni, listaMay, 685000.00, tablet1);
+        ListaPrecioArticulo lmi_celular1 = new ListaPrecioArticulo(agusbanuls, listaMin, 647000.00, celular1);
+        ListaPrecioArticulo lma_celular1 = new ListaPrecioArticulo(agusbanuls, listaMay, 590000.00, celular1);
+        ListaPrecioArticulo lmi_celular2 = new ListaPrecioArticulo(agusbanuls, listaMin, 248000.00, celular2);
+        ListaPrecioArticulo lma_celular2 = new ListaPrecioArticulo(agusbanuls, listaMay, 200000.00, celular2);
+        ListaPrecioArticulo lmi_auriculares1 = new ListaPrecioArticulo(agusbanuls, listaMin, 82000.00, auriculares1);
+        ListaPrecioArticulo lma_auriculares1 = new ListaPrecioArticulo(agusbanuls, listaMay, 60000.00, auriculares1);
+        ListaPrecioArticulo lmi_mouse1 = new ListaPrecioArticulo(agusbanuls, listaMin, 15000.00, mouse1);
+        ListaPrecioArticulo lma_mouse1 = new ListaPrecioArticulo(agusbanuls, listaMay, 9000.00, mouse1);
+        ListaPrecioArticulo lmi_mouse2 = new ListaPrecioArticulo(agusbanuls, listaMin, 39000.00, mouse2);
+        ListaPrecioArticulo lma_mouse2 = new ListaPrecioArticulo(agusbanuls, listaMay, 30000.00, mouse2);
+        em.persist(lmi_tablet1);
+        em.persist(lma_tablet1);
+        em.persist(lmi_celular1);
+        em.persist(lma_celular1);
+        em.persist(lmi_celular2);
+        em.persist(lma_celular2);
+        em.persist(lmi_auriculares1);
+        em.persist(lma_auriculares1);
+        em.persist(lmi_mouse1);
+        em.persist(lma_mouse1);
+        em.persist(lmi_mouse2);
+        em.persist(lma_mouse2);
 
-        FacturaVentaDetalle detalle1 = new FacturaVentaDetalle(factura1, la_tablet, "Tablet Samsung S6 Lite", 1, 300000.00, 0.00);
+        // Facturas de Venta:
+        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1001L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.00, null, null, null, null, null);
+        FacturaVenta factura2 = new FacturaVenta(nicomesa, 1002L, cliente1, responsableIns, pesos, sucursalCentro, 0.0, null, null, null, null, null);
+        FacturaVenta factura3 = new FacturaVenta(agusbanuls, 1003L, cliente3, consumidorFinal, pesos, sucursalShopping, 0.0, null, null, null, null, null);
+        FacturaVenta factura4 = new FacturaVenta(agusbanuls, 1004L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.0, null, null, null, null, null);
+
+        // Detalles de la Factura:
+        FacturaVentaDetalle detalle1 = new FacturaVentaDetalle(factura1, lmi_tablet1, "Compra por menor: Informatica", 1, 0.0);
+        FacturaVentaDetalle detalle2 = new FacturaVentaDetalle(factura2, lma_auriculares1, "Compra por mayor: Perifericos", 7, 0.0);
+        FacturaVentaDetalle detalle3 = new FacturaVentaDetalle(factura2, lma_mouse2, "Compra por mayor: Perifericos", 10, 30.0);
+        FacturaVentaDetalle detalle4 = new FacturaVentaDetalle(factura3, lmi_celular1, "Compra por menor: Telefonia", 1, 0.0);
+        FacturaVentaDetalle detalle5 = new FacturaVentaDetalle(factura4, lmi_mouse1, "Compra por menor: Perifericos", 1, 0.0);
 
         factura1.addDetalle(detalle1);
+        factura2.addDetalle(detalle2);
+        factura2.addDetalle(detalle3);
+        factura3.addDetalle(detalle4);
+        factura4.addDetalle(detalle5);
 
         em.persist(factura1);
+        em.persist(factura2);
+        em.persist(factura3);
+        em.persist(factura4);
 
         em.getTransaction().commit();
-        */ /*
+
+        /*
         ===============================================================================================================
                                                     TP GRUPAL 3 - JPQL
         =============================================================================================================== */
 
+        /*
         System.out.println("Nivel 1 -----------------------------------------------------------");
         System.out.println("Ejercicio 1: ");
         List<FacturaVenta> facturasRegistradas = em.createQuery(
@@ -150,6 +257,8 @@ public class Main {
         System.out.println("Nivel 3 -----------------------------------------------------------");
         System.out.println("Ejercicio 10: ");
 
+
+         */
         em.close();
         emf.close();
     }

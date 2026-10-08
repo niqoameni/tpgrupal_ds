@@ -52,24 +52,22 @@ public class FacturaVenta extends  AuditoriaApp{
     private String observaciones;
 
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL)
-    private List<FacturaVentaDetalle> detalles;
+    private List<FacturaVentaDetalle> detalles = new ArrayList<>();
 
     public FacturaVenta() {
     }
 
-    public FacturaVenta(Usuario usuarioCarga, Cliente cliente, CondicionIva condicionIva, TipoMoneda tipoMoneda, PuntoVenta puntoVenta, double importeTotal, String estado) {
+    public FacturaVenta(Usuario usuarioCarga, Cliente cliente, CondicionIva condicionIva, TipoMoneda tipoMoneda, PuntoVenta puntoVenta) {
         super(usuarioCarga);
         this.fechaEmision = new Date();
         this.cliente = cliente;
         this.condicionIva = condicionIva;
         this.tipoMoneda = tipoMoneda;
         this.puntoVenta = puntoVenta;
-        this.importeTotal = importeTotal;
-        this.estado = estado;
-        this.detalles = new ArrayList<>();
+        this.estado = "EMITIDA";
     }
 
-    public FacturaVenta(Usuario usuarioCarga, Long numero, Cliente cliente, CondicionIva condicionIva, TipoMoneda tipoMoneda, PuntoVenta puntoVenta, double importeCobrado, double importeSaldo, double importeTotal, String cae, Date caeFechaVencimiento, String resultadoAfip, String motivoRechazo, String estado, Date fechaAnulacion, String observaciones) {
+    public FacturaVenta(Usuario usuarioCarga, Long numero, Cliente cliente, CondicionIva condicionIva, TipoMoneda tipoMoneda, PuntoVenta puntoVenta, double importeSaldo, String cae, Date caeFechaVencimiento, String resultadoAfip, Date fechaAnulacion, String observaciones) {
         super(usuarioCarga);
         this.numero = numero;
         this.fechaEmision = new Date();
@@ -77,22 +75,30 @@ public class FacturaVenta extends  AuditoriaApp{
         this.condicionIva = condicionIva;
         this.tipoMoneda = tipoMoneda;
         this.puntoVenta = puntoVenta;
-        this.importeCobrado = importeCobrado;
         this.importeSaldo = importeSaldo;
-        this.importeTotal = importeTotal;
         this.cae = cae;
         this.caeFechaVencimiento = caeFechaVencimiento;
         this.resultadoAfip = resultadoAfip;
-        this.motivoRechazo = motivoRechazo;
-        this.estado = estado;
+        this.estado = "EMITIDA";
         this.fechaAnulacion = fechaAnulacion;
         this.observaciones = observaciones;
-        this.detalles = new ArrayList<>();
+    }
+
+    public void calcularTotal() {
+        double total = 0.0;
+        double cobrado = 0.0;
+        for (FacturaVentaDetalle detalle : this.detalles){
+            total = total + (detalle.getImporteNeto() + detalle.getImporteIva());
+            cobrado = cobrado + (detalle.getImporteSubtotal());
+        }
+        this.importeTotal = total;
+        this.importeCobrado = cobrado;
     }
 
     public void addDetalle(FacturaVentaDetalle detalle){
         this.detalles.add(detalle);
         detalle.setFactura(this);
+        calcularTotal();
     }
 
     public Long getNumero() {

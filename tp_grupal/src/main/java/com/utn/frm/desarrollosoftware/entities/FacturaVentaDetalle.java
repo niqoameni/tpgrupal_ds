@@ -26,30 +26,30 @@ public class FacturaVentaDetalle extends EntityId{
     @Column(nullable = false)
     private double importeSubtotal;
 
-    private double porcentajeBonificacion;
+    private Double porcentajeBonificacion;
     private double importeNeto;
     private double importeIva;
 
     public FacturaVentaDetalle() {
     }
 
-    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, double cantidad, double precioUnitario) {
+    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, double cantidad) {
         this.factura = factura;
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.cantidad = cantidad;
-        this.precioUnitario = precioUnitario;
-        this.importeSubtotal = cantidad * precioUnitario;
+        this.precioUnitario = this.listaPrecioArticulo.getPrecioVenta();
+        this.importeSubtotal = (this.cantidad * this.precioUnitario) * 1.21;
     }
 
-    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, String descripcion, double cantidad, double precioUnitario, double porcentajeBonificacion) {
+    public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, String descripcion, double cantidad, Double porcentajeBonificacion) {
         this.factura = factura;
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.descripcion = descripcion;
         this.cantidad = cantidad;
-        this.precioUnitario = precioUnitario;
-        this.importeSubtotal = (cantidad * precioUnitario) * 1.21;
-        this.porcentajeBonificacion = porcentajeBonificacion;
-        this.importeNeto = cantidad * precioUnitario;
+        this.precioUnitario = this.listaPrecioArticulo.getPrecioVenta();
+        this.porcentajeBonificacion = (porcentajeBonificacion != null) ? porcentajeBonificacion : 0.0;
+        this.importeSubtotal = (this.cantidad * this.precioUnitario) * (1.21 - (this.porcentajeBonificacion / 100));
+        this.importeNeto = this.cantidad * this.precioUnitario;
         this.importeIva = this.importeNeto * 0.21;
     }
 
