@@ -7,6 +7,10 @@ import jakarta.persistence.Persistence;
 import jakarta.transaction.Transaction;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws ParseException {
@@ -17,8 +21,8 @@ public class Main {
         /*
         ===============================================================================================================
                                         TP GRUPAL 2 - Jakarta Persistence API
-        =============================================================================================================== */
-        
+        =============================================================================================================== */ /*
+
         em.getTransaction().begin();
 
         // Usuarios:
@@ -169,35 +173,34 @@ public class Main {
         em.persist(factura3);
         em.persist(factura4);
 
-        em.getTransaction().commit();
+        em.getTransaction().commit(); */
 
         /*
         ===============================================================================================================
                                                     TP GRUPAL 3 - JPQL
         =============================================================================================================== */
 
-        /*
-        System.out.println("Nivel 1 -----------------------------------------------------------");
-        System.out.println("Ejercicio 1: ");
+        System.out.println("------------------------------------- Nivel 1 -------------------------------------");
+        System.out.println("Ejercicio 1: ----------------------------------------------------------------------");
         List<FacturaVenta> facturasRegistradas = em.createQuery(
                 "SELECT f FROM FacturaVenta f", FacturaVenta.class
         ).getResultList();
         facturasRegistradas.forEach(System.out::println);
 
-        System.out.println("Ejercicio 2: ");
+        System.out.println("Ejercicio 2: ----------------------------------------------------------------------");
         List<Object[]> atributosEspecificos = em.createQuery(
                 "SELECT f.numero, f.fechaEmision, f.importeTotal FROM FacturaVenta f", Object[].class
         ).getResultList();
         atributosEspecificos.forEach(fila -> System.out.println(Arrays.toString(fila)));
 
-        System.out.println("Ejercicio 3: ");
+        System.out.println("Ejercicio 3: ----------------------------------------------------------------------");
         List<Articulo> filtradoIgual = em.createQuery(
                 "SELECT a FROM Articulo a WHERE a.rubro.denominacion = :denominacionRubro", Articulo.class)
-                .setParameter("denominacionRubro", "Informatica")
+                .setParameter("denominacionRubro", "Accesorios y Perifericos")
                 .getResultList();
         filtradoIgual.forEach(System.out::println);
 
-        System.out.println("Ejercicio 4: ");
+        System.out.println("Ejercicio 4: ----------------------------------------------------------------------");
         SimpleDateFormat sfd = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date fechaInicio = sfd.parse("2026-09-10 00:00:00");
         Date fechaFin = sfd.parse("2026-10-10 00:00:00");
@@ -210,18 +213,18 @@ public class Main {
                 .getResultList();
         filtradoRango.forEach(System.out::println);
 
-        System.out.println("Nivel 2 -----------------------------------------------------------");
-        System.out.println("Ejercicio 5: ");
+        System.out.println("------------------------------------- Nivel 2 -------------------------------------");
+        System.out.println("Ejercicio 5: ----------------------------------------------------------------------");
 
         List<FacturaVenta> condicionalesComplejos = em.createQuery(
                 "SELECT f FROM FacturaVenta f WHERE f.estado = :estado AND f.importeTotal > :importeMinimo AND f.fechaAnulacion IS NULL", FacturaVenta.class
         )
                 .setParameter("estado", "EMITIDA")
-                .setParameter("importeMinimo", 10000.00)
+                .setParameter("importeMinimo", 100000.00)
                 .getResultList();
         condicionalesComplejos.forEach(System.out::println);
 
-        System.out.println("Ejercicio 6: ");
+        System.out.println("Ejercicio 6: ----------------------------------------------------------------------");
         List<Cliente> filtroPatronTexto = em.createQuery(
                 "SELECT c FROM Cliente c WHERE LOWER(c.denominacion) LIKE LOWER(:textoParcial) OR c.cuitCuil LIKE :prefijoCuit", Cliente.class
         )
@@ -230,14 +233,14 @@ public class Main {
                 .getResultList();
         filtroPatronTexto.forEach(System.out::println);
 
-        System.out.println("Ejercicio 7: "); //TODO: Revisar si está bien, agregando más objetos
-        List<FacturaVenta> ordenamientoSinDuplicados = em.createQuery(
-                "SELECT DISTINCT f FROM FacturaVenta f ORDER BY f.estado ASC", FacturaVenta.class
+        System.out.println("Ejercicio 7: ----------------------------------------------------------------------");
+        List<Object[]> ordenamientoSinDuplicados = em.createQuery(
+                "SELECT DISTINCT f.estado FROM FacturaVenta f ORDER BY f.estado ASC", Object[].class
         )
                 .getResultList();
-        ordenamientoSinDuplicados.forEach(System.out::println);
+        ordenamientoSinDuplicados.forEach(fila -> System.out.println(Arrays.toString(fila)));
 
-        System.out.println("Ejercicio 8: ");
+        System.out.println("Ejercicio 8: ----------------------------------------------------------------------");
         List<Object[]> agregacionSimple = em.createQuery(
                 "SELECT COUNT(f), SUM(f.importeTotal), AVG(f.importeTotal) FROM FacturaVenta f WHERE f.estado = :estado", Object[].class
         )
@@ -245,8 +248,8 @@ public class Main {
                 .getResultList();
         agregacionSimple.forEach(fila -> System.out.println(Arrays.toString(fila)));
 
-        System.out.println("Ejercicio 9: ");
-        List<Integer> numerosPuntoVenta = Arrays.asList(1, 2, 3, 4, 5);
+        System.out.println("Ejercicio 9: ----------------------------------------------------------------------");
+        List<Integer> numerosPuntoVenta = Arrays.asList(1, 3);
         List<PuntoVenta> operadorInclusion = em.createQuery(
                "SELECT p FROM PuntoVenta p WHERE p.numero IN (:listaPuntos)", PuntoVenta.class
         )
@@ -254,11 +257,48 @@ public class Main {
                 .getResultList();
         operadorInclusion.forEach(System.out::println);
 
-        System.out.println("Nivel 3 -----------------------------------------------------------");
-        System.out.println("Ejercicio 10: ");
+        System.out.println("------------------------------------- Nivel 3 -------------------------------------");
+        System.out.println("Ejercicio 10: ---------------------------------------------------------------------");
 
+        List<FacturaVenta> navegacionRelacion = em.createQuery(
+                "SELECT f FROM FacturaVenta f WHERE f.usuarioCarga.usuario = :user", FacturaVenta.class
+        )
+                .setParameter("user", "agusbanuls")
+                .getResultList();
+        navegacionRelacion.forEach(System.out::println);
 
-         */
+        System.out.println("Ejercicio 11: ---------------------------------------------------------------------");
+        List<FacturaVentaDetalle> innerJoin = em.createQuery(
+                "SELECT d FROM FacturaVentaDetalle d INNER JOIN d.factura f WHERE f.puntoVenta.descripcion = :punto", FacturaVentaDetalle.class
+        )
+                .setParameter("punto", "Sucursal de Mendoza Shopping")
+                .getResultList();
+        innerJoin.forEach(System.out::println);
+
+        System.out.println("Ejercicio 12: ---------------------------------------------------------------------");
+        List<Object[]> leftJoin = em.createQuery(
+                "SELECT a.denominacion, m.denominacion FROM Articulo a LEFT JOIN a.marca m", Object[].class
+        )
+                .getResultList();
+        leftJoin.forEach(fila -> System.out.println(Arrays.toString(fila)));
+
+        System.out.println("Ejercicio 13: ---------------------------------------------------------------------");
+        List<FacturaVenta> multinivel = em.createQuery(
+                "SELECT f FROM FacturaVenta f INNER JOIN f.detalles d WHERE d.listaPrecioArticulo.articulo.marca.denominacion = :marcaSeñalada", FacturaVenta.class
+        )
+                .setParameter("marcaSeñalada", "Logitech")
+                .getResultList();
+        multinivel.forEach(System.out::println);
+
+        System.out.println("Ejercicio 14: ---------------------------------------------------------------------");
+        List<FacturaVenta> subcosultas = em.createQuery(
+                "SELECT f FROM FacturaVenta f WHERE importeTotal > (SELECT AVG(f2.importeTotal) FROM FacturaVenta f2)", FacturaVenta.class
+        ).getResultList();
+        subcosultas.forEach(System.out::println);
+
+        System.out.println("------------------------------------- Nivel 4 -------------------------------------");
+        System.out.println("Ejercicio 15: ---------------------------------------------------------------------");
+
         em.close();
         emf.close();
     }
