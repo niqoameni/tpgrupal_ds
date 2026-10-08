@@ -19,10 +19,33 @@ public class Main {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("FacturacionPU");
         EntityManager em = emf.createEntityManager();
 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         /*
         ===============================================================================================================
                                         TP GRUPAL 2 - Jakarta Persistence API
-        =============================================================================================================== */ /*
+        ===============================================================================================================
 
         em.getTransaction().begin();
 
@@ -174,12 +197,12 @@ public class Main {
         em.persist(factura3);
         em.persist(factura4);
 
-        em.getTransaction().commit(); */
+        em.getTransaction().commit();
 
-        /*
+
         ===============================================================================================================
                                                     TP GRUPAL 3 - JPQL
-        =============================================================================================================== */
+        ===============================================================================================================
 
         System.out.println("------------------------------------- Nivel 1 -------------------------------------");
         System.out.println("Ejercicio 1: ----------------------------------------------------------------------");
@@ -299,7 +322,6 @@ public class Main {
 
         System.out.println("------------------------------------- Nivel 4 -------------------------------------");
         System.out.println("Ejercicio 15: ---------------------------------------------------------------------");
-        // Obtener la descripción del punto de venta, la cantidad de facturas emitidas por cada uno y la suma total facturada.
         List<Object[]> groupBy = em.createQuery(
                 "SELECT f.puntoVenta.descripcion, COUNT(f), SUM(f.importeTotal) FROM FacturaVenta f GROUP BY f.puntoVenta.descripcion", Object[].class
         )
@@ -348,5 +370,8 @@ public class Main {
 
         em.close();
         emf.close();
+
+
+         */
     }
 }
