@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import jakarta.transaction.Transaction;
 
+import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -298,6 +299,52 @@ public class Main {
 
         System.out.println("------------------------------------- Nivel 4 -------------------------------------");
         System.out.println("Ejercicio 15: ---------------------------------------------------------------------");
+        // Obtener la descripción del punto de venta, la cantidad de facturas emitidas por cada uno y la suma total facturada.
+        List<Object[]> groupBy = em.createQuery(
+                "SELECT f.puntoVenta.descripcion, COUNT(f), SUM(f.importeTotal) FROM FacturaVenta f GROUP BY f.puntoVenta.descripcion", Object[].class
+        )
+                        .getResultList();
+        groupBy.forEach(fila -> System.out.println(Arrays.toString(fila)));
+
+        System.out.println("Ejercicio 16: ---------------------------------------------------------------------");
+        List<Object[]> havingGrupo = em.createQuery(
+                "SELECT f.usuarioCarga.nombre FROM FacturaVenta f GROUP BY f.usuarioCarga.nombre HAVING COUNT(f) > 5", Object[].class
+        )
+                        .getResultList();
+        havingGrupo.forEach(fila -> System.out.println(Arrays.toString(fila))); //No devuelve nada porque no tengo a nadie que haya cargado más de 5 facturas
+
+        System.out.println("Ejercicio 17: ---------------------------------------------------------------------");
+        List<Object[]> agrupacionAgregacion = em.createQuery(
+                "SELECT d.listaPrecioArticulo.articulo.marca.denominacion, SUM(d.cantidad), SUM(d.importeSubtotal) FROM FacturaVentaDetalle d GROUP BY d.listaPrecioArticulo.articulo.marca", Object[].class
+        )
+                        .getResultList();
+        agrupacionAgregacion.forEach(fila -> System.out.println(Arrays.toString(fila)));
+
+        System.out.println("------------------------------------- Nivel 5 -------------------------------------");
+        System.out.println("Ejercicio 18: ---------------------------------------------------------------------");
+        List<Marca> subconsultaCorrelacionada = em.createQuery(
+                "SELECT m FROM Marca m WHERE EXISTS (SELECT d FROM FacturaVentaDetalle d WHERE d.listaPrecioArticulo.articulo.marca = m)", Marca.class
+        )
+                        .getResultList();
+        subconsultaCorrelacionada.forEach(System.out::println);
+
+        System.out.println("Ejercicio 19: ---------------------------------------------------------------------");
+        List<Articulo> subconsultaNotExists = em.createQuery(
+                "SELECT a FROM Articulo a WHERE NOT EXISTS (SELECT d.listaPrecioArticulo.articulo FROM FacturaVentaDetalle d WHERE d.listaPrecioArticulo.articulo = a)", Articulo.class
+        )
+                        .getResultList();
+        subconsultaNotExists.forEach(System.out::println);
+
+        System.out.println("Ejercicio 20: ---------------------------------------------------------------------");
+        List<Object[]> proyeccionCondicional = em.createQuery(
+                "SELECT f.numero, f.importeTotal, CASE " +
+                        "                               WHEN f.importeTotal > 50000.00 THEN 'ALTO VALOR'" +
+                        "                               WHEN f.importeTotal BETWEEN 10000.00 AND 50000.00 THEN 'MEDIO VALOR'" +
+                        "                               WHEN f.importeTotal < 10000.00 THEN 'BAJO VALOR'" +
+                        "                            END FROM FacturaVenta f", Object[].class
+        )
+                        .getResultList();
+        proyeccionCondicional.forEach(fila -> System.out.println(Arrays.toString(fila)));
 
         em.close();
         emf.close();
