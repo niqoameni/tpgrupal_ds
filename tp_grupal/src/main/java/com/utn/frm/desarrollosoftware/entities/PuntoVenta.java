@@ -3,9 +3,15 @@ package com.utn.frm.desarrollosoftware.entities;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import lombok.*;
 
 import java.util.Objects;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @Entity
 @Table(name = "punto_venta")
 public class PuntoVenta extends AuditoriaApp{
@@ -15,9 +21,6 @@ public class PuntoVenta extends AuditoriaApp{
     private String descripcion;
     private String tipoEmision;
     private String domicilioComercial;
-
-    public PuntoVenta() {
-    }
 
     public PuntoVenta(Usuario usuarioCarga, int numero) {
         super(usuarioCarga);
@@ -30,67 +33,5 @@ public class PuntoVenta extends AuditoriaApp{
         this.descripcion = descripcion;
         this.tipoEmision = tipoEmision;
         this.domicilioComercial = domicilioComercial;
-    }
-
-    public int getNumero() {
-        return numero;
-    }
-
-    public void setNumero(int numero) {
-        this.numero = numero;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public String getTipoEmision() {
-        return tipoEmision;
-    }
-
-    public void setTipoEmision(String tipoEmision) {
-        this.tipoEmision = tipoEmision;
-    }
-
-    public String getDomicilioComercial() {
-        return domicilioComercial;
-    }
-
-    public void setDomicilioComercial(String domicilioComercial) {
-        this.domicilioComercial = domicilioComercial;
-    }
-
-    @Override
-    public String toString() {
-        return "PuntoVenta{" +
-                "id=" + id +
-                ", numero=" + numero +
-                ", descripcion='" + descripcion + '\'' +
-                ", tipoEmision='" + tipoEmision + '\'' +
-                ", domicilioComercial='" + domicilioComercial + '\'' +
-                ", fechaAlta=" + fechaAlta +
-                ", fechaBaja=" + fechaBaja +
-                ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga.getUsuario() +
-                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
-                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PuntoVenta that = (PuntoVenta) o;
-        return numero == that.numero;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(numero);
     }
 }

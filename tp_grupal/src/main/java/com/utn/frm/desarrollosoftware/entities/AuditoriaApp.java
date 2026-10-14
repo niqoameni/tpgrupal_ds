@@ -1,21 +1,29 @@
 package com.utn.frm.desarrollosoftware.entities;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.Date;
 
+@NoArgsConstructor
+@Getter
+@Setter
 @MappedSuperclass
 public class AuditoriaApp extends EntityId{
+    @Setter(AccessLevel.NONE)
     @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
-    protected Date fechaAlta;
+    protected Date fechaAlta = new Date();
 
     @Temporal(TemporalType.TIMESTAMP)
     protected Date fechaBaja;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
-    protected Date fechaModificacion;
+    protected Date fechaModificacion = fechaAlta;
 
     @ManyToOne
     @JoinColumn(nullable = false)
@@ -28,53 +36,16 @@ public class AuditoriaApp extends EntityId{
     @JoinColumn(nullable = false)
     protected Usuario usuarioModificacion;
 
-    public AuditoriaApp() {
-    }
-
     public AuditoriaApp(Usuario usuarioCarga) {
-        this.fechaAlta = new Date();
-        this.fechaModificacion = this.fechaAlta;
         this.usuarioCarga = usuarioCarga;
         this.usuarioModificacion = this.usuarioCarga;
     }
 
-    public Date getFechaAlta() {
-        return fechaAlta;
-    }
-
-    public Date getFechaBaja() {
-        return fechaBaja;
-    }
-
-    public Date getFechaModificacion() {
-        return fechaModificacion;
-    }
-
-    public Usuario getUsuarioCarga() {
-        return usuarioCarga;
-    }
-
-    public Usuario getUsuarioBaja() {
-        return usuarioBaja;
-    }
-
-    public Usuario getUsuarioModificacion() {
-        return usuarioModificacion;
-    }
-
-    public void setFechaBaja(Date fechaBaja) {
-        this.fechaBaja = fechaBaja;
-    }
-
-    public void setFechaModificacion(Date fechaModificacion) {
-        this.fechaModificacion = fechaModificacion;
-    }
-
-    public void setUsuarioBaja(Usuario usuarioBaja) {
-        this.usuarioBaja = usuarioBaja;
-    }
-
-    public void setUsuarioModificacion(Usuario usuarioModificacion) {
+    public void setFechaBaja(Usuario usuarioModificacion) {
         this.usuarioModificacion = usuarioModificacion;
+        this.fechaBaja = new Date();
+        this.fechaModificacion = this.fechaBaja;
+        this.usuarioBaja = usuarioModificacion;
     }
+
 }
