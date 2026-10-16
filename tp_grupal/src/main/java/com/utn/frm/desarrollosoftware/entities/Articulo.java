@@ -4,9 +4,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.*;
 
 import java.util.Objects;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "articulo")
 public class Articulo extends AuditoriaApp{
@@ -22,9 +28,6 @@ public class Articulo extends AuditoriaApp{
     @ManyToOne
     private Marca marca;
 
-    public Articulo() {
-    }
-
     public Articulo(Usuario usuarioCarga, String codigo, String denominacion) {
         super(usuarioCarga);
         this.codigo = codigo;
@@ -37,67 +40,5 @@ public class Articulo extends AuditoriaApp{
         this.codigo = codigo;
         this.denominacion = denominacion;
         this.marca = marca;
-    }
-
-    public Rubro getRubro() {
-        return rubro;
-    }
-
-    public void setRubro(Rubro rubro) {
-        this.rubro = rubro;
-    }
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(String codigo) {
-        this.codigo = codigo;
-    }
-
-    public String getDenominacion() {
-        return denominacion;
-    }
-
-    public void setDenominacion(String denominacion) {
-        this.denominacion = denominacion;
-    }
-
-    public Marca getMarca() {
-        return marca;
-    }
-
-    public void setMarca(Marca marca) {
-        this.marca = marca;
-    }
-
-    @Override
-    public String toString() {
-        return "Articulo{" +
-                "id=" + id +
-                ", codigo='" + codigo + '\'' +
-                ", denominacion='" + denominacion + '\'' +
-                ", rubro=" + rubro.getDenominacion() +
-                ", marca=" + marca.getDenominacion() +
-                ", fechaAlta=" + fechaAlta +
-                ", fechaBaja=" + fechaBaja +
-                ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga.getUsuario() +
-                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
-                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Articulo articulo = (Articulo) o;
-        return Objects.equals(codigo, articulo.codigo) && Objects.equals(denominacion, articulo.denominacion);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(codigo, denominacion);
     }
 }

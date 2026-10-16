@@ -1,25 +1,30 @@
 package com.utn.frm.desarrollosoftware.entities;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.util.Objects;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true, onlyExplicitlyIncluded = true)
 @Entity
 @Table(name = "lista_precio_articulo")
 public class ListaPrecioArticulo extends AuditoriaApp{
+    @ToString.Include
     @ManyToOne
     @JoinColumn(nullable = false)
     private ListaPrecio listaPrecio;
 
+    @ToString.Include
     @Column(nullable = false)
     private double precioVenta;
 
     @ManyToOne
     @JoinColumn(nullable = false)
     private Articulo articulo;
-
-    public ListaPrecioArticulo() {
-    }
 
     public ListaPrecioArticulo(Usuario usuarioCarga, ListaPrecio listaPrecio, double precioVenta, Articulo articulo) {
         super(usuarioCarga);
@@ -28,56 +33,13 @@ public class ListaPrecioArticulo extends AuditoriaApp{
         this.articulo = articulo;
     }
 
-    public ListaPrecio getListaPrecio() {
-        return listaPrecio;
+    @ToString.Include(name = "codigoArticulo")
+    public String getCodigoArticulo(){
+        return (articulo != null) ? articulo.getCodigo() : null;
     }
 
-    public void setListaPrecio(ListaPrecio listaPrecio) {
-        this.listaPrecio = listaPrecio;
-    }
-
-    public double getPrecioVenta() {
-        return precioVenta;
-    }
-
-    public void setPrecioVenta(double precioVenta) {
-        this.precioVenta = precioVenta;
-    }
-
-    public Articulo getArticulo() {
-        return articulo;
-    }
-
-    public void setArticulo(Articulo articulo) {
-        this.articulo = articulo;
-    }
-
-    @Override
-    public String toString() {
-        return "ListaPrecioArticulo{" +
-                "id=" + id +
-                ", listaPrecio=" + listaPrecio.getDenominacion() + " (" + listaPrecio.getCodigo() + ")" +
-                ", precioVenta=" + precioVenta +
-                ", articulo=" + articulo.getDenominacion() + " (" + articulo.getCodigo() + ")" +
-                ", fechaAlta=" + fechaAlta +
-                ", fechaBaja=" + fechaBaja +
-                ", fechaModificacion=" + fechaModificacion +
-                ", usuarioCarga=" + usuarioCarga.getUsuario() +
-                ", usuarioBaja=" + (usuarioBaja != null ? usuarioBaja.getUsuario() : " ") +
-                ", usuarioModificacion=" + usuarioModificacion.getUsuario() +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ListaPrecioArticulo that = (ListaPrecioArticulo) o;
-        return Objects.equals(listaPrecio, that.listaPrecio) && Objects.equals(articulo, that.articulo);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(listaPrecio, articulo);
+    @ToString.Include(name = "denominacionArticulo")
+    public String getDenominacionArticulo(){
+        return (articulo != null) ? articulo.getDenominacion() : null;
     }
 }

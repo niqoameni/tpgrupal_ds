@@ -19,7 +19,7 @@ public class Main {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("FacturacionPU");
         EntityManager em = emf.createEntityManager();
 
-        
+
 
 
 
@@ -199,6 +199,8 @@ public class Main {
 
         em.getTransaction().commit();
 
+        em.close();
+        emf.close();
 
         ===============================================================================================================
                                                     TP GRUPAL 3 - JPQL

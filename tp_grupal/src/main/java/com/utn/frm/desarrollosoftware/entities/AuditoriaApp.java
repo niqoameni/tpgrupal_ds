@@ -1,30 +1,31 @@
 package com.utn.frm.desarrollosoftware.entities;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Date;
 
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString(onlyExplicitlyIncluded = true, callSuper = true)
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @MappedSuperclass
-public class AuditoriaApp extends EntityId{
+public abstract class AuditoriaApp extends EntityId{
     @Setter(AccessLevel.NONE)
     @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
     protected Date fechaAlta = new Date();
 
+    @Setter(AccessLevel.NONE)
     @Temporal(TemporalType.TIMESTAMP)
     protected Date fechaBaja;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false)
-    protected Date fechaModificacion = fechaAlta;
+    protected Date fechaModificacion = new Date();
 
+    @Setter(AccessLevel.NONE)
     @ManyToOne
     @JoinColumn(nullable = false)
     protected Usuario usuarioCarga;
@@ -48,4 +49,8 @@ public class AuditoriaApp extends EntityId{
         this.usuarioBaja = usuarioModificacion;
     }
 
+    @ToString.Include(name = "usuarioCarga")
+    public String getUserUsuarioCarga(){
+        return (usuarioCarga != null) ? usuarioCarga.getUsuario() : null;
+    }
 }

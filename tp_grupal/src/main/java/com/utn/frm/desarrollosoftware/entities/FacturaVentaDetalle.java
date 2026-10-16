@@ -1,44 +1,57 @@
 package com.utn.frm.desarrollosoftware.entities;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.util.Objects;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString(callSuper = true, onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "factura_detalle")
 public class FacturaVentaDetalle extends EntityId{
-    @ManyToOne
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     private FacturaVenta factura;
 
+    @ToString.Include
     @ManyToOne
     @JoinColumn(nullable = false)
     private ListaPrecioArticulo listaPrecioArticulo;
 
+    @ToString.Include
     private String descripcion;
 
+    @ToString.Include
     @Column(nullable = false)
     private double cantidad;
 
+    @ToString.Include
     @Column(nullable = false)
     private double precioUnitario;
 
+    @ToString.Include
     @Column(nullable = false)
     private double importeSubtotal;
 
+    @ToString.Include
     private Double porcentajeBonificacion;
+    @ToString.Include
     private double importeNeto;
+    @ToString.Include
     private double importeIva;
-
-    public FacturaVentaDetalle() {
-    }
 
     public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, double cantidad) {
         this.factura = factura;
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.cantidad = cantidad;
-        this.precioUnitario = this.listaPrecioArticulo.getPrecioVenta();
-        this.importeSubtotal = (this.cantidad * this.precioUnitario) * 1.21;
+        this.precioUnitario = (listaPrecioArticulo != null) ? listaPrecioArticulo.getPrecioVenta() : 0.0;
+        this.porcentajeBonificacion = 0.0;
+        calcularImportes();
     }
 
     public FacturaVentaDetalle(FacturaVenta factura, ListaPrecioArticulo listaPrecioArticulo, String descripcion, double cantidad, Double porcentajeBonificacion) {
@@ -46,111 +59,21 @@ public class FacturaVentaDetalle extends EntityId{
         this.listaPrecioArticulo = listaPrecioArticulo;
         this.descripcion = descripcion;
         this.cantidad = cantidad;
-        this.precioUnitario = this.listaPrecioArticulo.getPrecioVenta();
+        this.precioUnitario = (listaPrecioArticulo != null) ? listaPrecioArticulo.getPrecioVenta() : 0.0;
         this.porcentajeBonificacion = (porcentajeBonificacion != null) ? porcentajeBonificacion : 0.0;
-        this.importeSubtotal = (this.cantidad * this.precioUnitario) * (1.21 - (this.porcentajeBonificacion / 100));
-        this.importeNeto = this.cantidad * this.precioUnitario;
+        calcularImportes();
+    }
+
+    public void calcularImportes() {
+        double bruto = this.cantidad * this.precioUnitario;
+        double descuento = bruto * (this.porcentajeBonificacion / 100.0);
+        this.importeNeto = bruto - descuento;
         this.importeIva = this.importeNeto * 0.21;
+        this.importeSubtotal = this.importeNeto + this.importeIva;
     }
 
-    public FacturaVenta getFactura() {
-        return factura;
-    }
-
-    public void setFactura(FacturaVenta factura) {
-        this.factura = factura;
-    }
-
-    public ListaPrecioArticulo getListaPrecioArticulo() {
-        return listaPrecioArticulo;
-    }
-
-    public void setListaPrecioArticulo(ListaPrecioArticulo listaPrecioArticulo) {
-        this.listaPrecioArticulo = listaPrecioArticulo;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public double getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(double cantidad) {
-        this.cantidad = cantidad;
-    }
-
-    public double getPrecioUnitario() {
-        return precioUnitario;
-    }
-
-    public void setPrecioUnitario(double precioUnitario) {
-        this.precioUnitario = precioUnitario;
-    }
-
-    public double getImporteSubtotal() {
-        return importeSubtotal;
-    }
-
-    public void setImporteSubtotal(double importeSubtotal) {
-        this.importeSubtotal = importeSubtotal;
-    }
-
-    public double getPorcentajeBonificacion() {
-        return porcentajeBonificacion;
-    }
-
-    public void setPorcentajeBonificacion(double porcentajeBonificacion) {
-        this.porcentajeBonificacion = porcentajeBonificacion;
-    }
-
-    public double getImporteNeto() {
-        return importeNeto;
-    }
-
-    public void setImporteNeto(double importeNeto) {
-        this.importeNeto = importeNeto;
-    }
-
-    public double getImporteIva() {
-        return importeIva;
-    }
-
-    public void setImporteIva(double importeIva) {
-        this.importeIva = importeIva;
-    }
-
-    @Override
-    public String toString() {
-        return "FacturaVentaDetalle{" +
-                "id=" + id +
-                ", factura=" + factura.getNumero() +
-                ", listaPrecioArticulo=" + listaPrecioArticulo.getId() +
-                ", descripcion='" + descripcion + '\'' +
-                ", cantidad=" + cantidad +
-                ", precioUnitario=" + precioUnitario +
-                ", importeSubtotal=" + importeSubtotal +
-                ", porcentajeBonificacion=" + porcentajeBonificacion +
-                ", importeNeto=" + importeNeto +
-                ", importeIva=" + importeIva +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FacturaVentaDetalle that = (FacturaVentaDetalle) o;
-        return Objects.equals(factura, that.factura) && Objects.equals(listaPrecioArticulo, that.listaPrecioArticulo);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(factura, listaPrecioArticulo);
+    @ToString.Include(name = "numeroFactura")
+    public Long getNumeroFactura(){
+        return (factura != null) ? factura.getNumero() : null;
     }
 }
