@@ -1,6 +1,9 @@
 package com.utn.frm.desarrollosoftware;
 
+import com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO;
 import com.utn.frm.desarrollosoftware.entities.*;
+import com.utn.frm.desarrollosoftware.util.ExcelExporter;
+import com.utn.frm.desarrollosoftware.util.PdfItextExporter;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
@@ -19,8 +22,34 @@ public class Main {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("FacturacionPU");
         EntityManager em = emf.createEntityManager();
 
+        String jpql = "SELECT new com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO(" +
+                " f.numero, " +
+                " f.fechaEmision, " +
+                " COALESCE(c.denominacion, 'Consumidor Final'), " +
+                " ci.denominacion, " +
+                " pv.descripcion, " +
+                " f.importeTotal, " +
+                " COUNT(d) " +
+                ")" +
+                "FROM FacturaVenta f " +
+                "LEFT JOIN f.cliente c " +
+                "JOIN f.condicionIva ci " +
+                "JOIN f.puntoVenta pv " +
+                "JOIN f.detalles d " +
+                "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal";
+
+        List<FacturaReporteDTO> reporte = em.createQuery(jpql, FacturaReporteDTO.class).getResultList();
+        reporte.forEach(System.out::println);
+
+        // Generar PDF con iText
+        PdfItextExporter.exportar(reporte, "reporte_ventas.pdf");
+
+        // Generar Excel por tabulaciones
+        ExcelExporter.exportar(reporte, "reporte_ventas.xls");
 
 
+        em.close();
+        emf.close();
 
 
 
