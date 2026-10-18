@@ -41,10 +41,10 @@ public class Main {
         List<FacturaReporteDTO> reporte = em.createQuery(jpql, FacturaReporteDTO.class).getResultList();
         reporte.forEach(System.out::println);
 
-        // Generar PDF con iText
+        // Generar PDF
         PdfItextExporter.exportar(reporte, "reporte_ventas.pdf");
 
-        // Generar Excel por tabulaciones
+        // Generar Excel
         ExcelExporter.exportar(reporte, "reporte_ventas.xls");
 
 
