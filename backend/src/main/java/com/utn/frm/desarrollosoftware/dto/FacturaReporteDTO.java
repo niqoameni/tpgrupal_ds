@@ -8,15 +8,13 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
-@EqualsAndHashCode
 public class FacturaReporteDTO {
     private Long numeroFactura;
     private Date fechaEmision;
     private String clienteDenominacion;
     private String condicionIva;
     private String puntoVentaDescripcion;
-    private double importeFinal;
-    private long cantidadItems;
+    private Double importeFinal;
+    private Long cantidadItems;
 
 }
