@@ -1,502 +1,221 @@
-import { FacturaService } from './services/FacturaService';
+import { FacturaService } from './services/FacturaService.js';
 const facturaService = new FacturaService();
-// Estado en memoria
-let detallesTemporales = [];
-let articulosCatalogo = [];
-let facturaActualId = null;
-document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Cargar catálogos y selects iniciales
-    await inicializarCatalogos();
-    // 2. Cargar facturas registradas en la BD
-    await cargarTablaFacturas();
-    // 3. Establecer fecha de hoy por defecto en el formulario de alta
-    const inputFecha = document.getElementById('fecha-emision');
-    if (inputFecha) {
-        inputFecha.value = new Date().toISOString().split('T')[0];
-    }
-    // 4. Toggle para abrir/cerrar el formulario de nueva factura
-    const btnToggleNueva = document.getElementById('btn-toggle-nueva-factura');
-    const seccionNueva = document.getElementById('seccion-nueva-factura');
-    const btnCerrarNueva = document.getElementById('btn-cerrar-nueva-factura');
-    btnToggleNueva?.addEventListener('click', () => {
-        if (seccionNueva) {
-            seccionNueva.style.display = seccionNueva.style.display === 'none' ? 'block' : 'none';
-            if (seccionNueva.style.display === 'block') {
-                seccionNueva.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-    });
-    btnCerrarNueva?.addEventListener('click', () => {
-        if (seccionNueva)
-            seccionNueva.style.display = 'none';
-    });
-    // 5. Autocompletar precio al seleccionar artículo en el alta
-    const selectArticulo = document.getElementById('det-articulo');
-    selectArticulo?.addEventListener('change', () => {
-        const lpaId = Number(selectArticulo.value);
-        const art = articulosCatalogo.find(a => a.listaPrecioArticuloId === lpaId);
-        const inputPrecio = document.getElementById('det-precio');
-        if (art && inputPrecio) {
-            inputPrecio.value = art.precioVenta.toFixed(2);
-        }
-    });
-    // 6. Autocompletar precio al seleccionar artículo en la pantalla de edición
-    const selectEditArticulo = document.getElementById('edit-det-articulo');
-    selectEditArticulo?.addEventListener('change', () => {
-        const lpaId = Number(selectEditArticulo.value);
-        const art = articulosCatalogo.find(a => a.listaPrecioArticuloId === lpaId);
-        const inputPrecio = document.getElementById('edit-det-precio');
-        if (art && inputPrecio) {
-            inputPrecio.value = art.precioVenta.toFixed(2);
-        }
-    });
-    // 7. Botón "Añadir a la lista" (Nueva Factura temporal)
-    const btnAgregarDetalle = document.getElementById('btn-agregar-detalle');
-    btnAgregarDetalle?.addEventListener('click', () => {
-        const selArt = document.getElementById('det-articulo');
-        const lpaId = Number(selArt.value);
-        const cantidad = Number(document.getElementById('det-cantidad').value);
-        const precioUnitario = Number(document.getElementById('det-precio').value);
-        const bonif = Number(document.getElementById('det-bonif').value) || 0;
-        if (!lpaId || isNaN(lpaId)) {
-            alert('Por favor seleccione un artículo de la lista.');
-            return;
-        }
-        if (!cantidad || cantidad <= 0) {
-            alert('Ingrese una cantidad válida mayor a cero.');
-            return;
-        }
-        const art = articulosCatalogo.find(a => a.listaPrecioArticuloId === lpaId);
-        const descripcion = art ? `${art.codigo} - ${art.denominacion}` : 'Artículo';
-        detallesTemporales.push({
-            listaPrecioArticuloId: lpaId,
-            articuloId: art?.articuloId,
-            descripcion: descripcion,
-            cantidad: cantidad,
-            precioUnitario: precioUnitario,
-            porcentajeBonificacion: bonif,
-            porcentajeIva: 21
-        });
-        renderizarTablaDetallesTemp();
-        limpiarInputsDetalle();
-    });
-    // 8. Enviar formulario de alta de factura
-    const facturaForm = document.getElementById('factura-form');
-    facturaForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (detallesTemporales.length === 0) {
-            alert('La factura debe tener al menos un artículo cargado.');
-            return;
-        }
-        const inputNumero = document.getElementById('num-factura').value;
-        const nuevaFactura = {
-            numero: inputNumero ? Number(inputNumero) : undefined,
-            fechaEmision: document.getElementById('fecha-emision').value || undefined,
-            clienteId: Number(document.getElementById('cliente-id').value),
-            condicionIvaId: Number(document.getElementById('cond-iva-id').value),
-            puntoVentaId: Number(document.getElementById('pv-id').value),
-            tipoMonedaId: Number(document.getElementById('moneda-id').value),
-            observaciones: document.getElementById('observaciones').value || undefined,
-            usuario: 'admin',
-            detalles: detallesTemporales
-        };
-        try {
-            const creada = await facturaService.crearFactura(nuevaFactura);
-            alert(`¡Factura N° ${creada.numero} creada con éxito!`);
-            detallesTemporales = [];
-            renderizarTablaDetallesTemp();
-            facturaForm.reset();
-            if (seccionNueva)
-                seccionNueva.style.display = 'none';
-            await cargarTablaFacturas();
-        }
-        catch (error) {
-            console.error(error);
-            alert('Error al registrar la factura. Verifique los datos ingresados.');
-        }
-    });
-    // 9. Aplicar filtros de búsqueda
-    const filterForm = document.getElementById('filter-form');
-    filterForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const inputNum = document.getElementById('filtro-numero').value;
-        const inputCli = document.getElementById('filtro-cliente').value;
-        const inputDesde = document.getElementById('filtro-desde').value;
-        const inputHasta = document.getElementById('filtro-hasta').value;
-        const inputCondIva = document.getElementById('filtro-cond-iva').value;
-        const filtros = {
-            numero: inputNum ? Number(inputNum) : undefined,
-            cliente: inputCli ? inputCli : undefined,
-            fechaDesde: inputDesde ? inputDesde : undefined,
-            fechaHasta: inputHasta ? inputHasta : undefined,
-            condicionIvaId: inputCondIva ? Number(inputCondIva) : undefined
-        };
-        await cargarTablaFacturas(filtros);
-    });
-    // 10. Limpiar filtros
-    const btnLimpiar = document.getElementById('btn-limpiar-filtros');
-    btnLimpiar?.addEventListener('click', async () => {
-        filterForm?.reset();
-        await cargarTablaFacturas();
-    });
-    // 11. Botón "Volver al listado" en la pantalla de edición
-    const btnVolver = document.getElementById('btn-volver-principal');
-    btnVolver?.addEventListener('click', async () => {
-        facturaActualId = null;
-        mostrarPantalla('principal');
-        await cargarTablaFacturas();
-    });
-    // 12. Botón "Agregar Artículo" en la pantalla de edición
-    const btnEditAgregar = document.getElementById('btn-edit-agregar-articulo');
-    btnEditAgregar?.addEventListener('click', async () => {
-        if (!facturaActualId)
-            return;
-        const selArt = document.getElementById('edit-det-articulo');
-        const lpaId = Number(selArt.value);
-        const cantidad = Number(document.getElementById('edit-det-cantidad').value);
-        const precioUnitario = Number(document.getElementById('edit-det-precio').value);
-        const bonif = Number(document.getElementById('edit-det-bonif').value) || 0;
-        if (!lpaId || isNaN(lpaId)) {
-            alert('Seleccione un artículo.');
-            return;
-        }
-        if (!cantidad || cantidad <= 0) {
-            alert('Ingrese una cantidad válida mayor a 0.');
-            return;
-        }
-        const art = articulosCatalogo.find(a => a.listaPrecioArticuloId === lpaId);
-        const descripcion = art ? `${art.codigo} - ${art.denominacion}` : 'Artículo';
-        try {
-            const facturaActualizada = await facturaService.agregarDetalle(facturaActualId, {
-                listaPrecioArticuloId: lpaId,
-                articuloId: art?.articuloId,
-                descripcion: descripcion,
-                cantidad: cantidad,
-                precioUnitario: precioUnitario,
-                porcentajeBonificacion: bonif
-            });
-            renderizarPantallaEdicion(facturaActualizada);
-            // Limpiar inputs
-            selArt.value = '';
-            document.getElementById('edit-det-cantidad').value = '1';
-            document.getElementById('edit-det-precio').value = '';
-            document.getElementById('edit-det-bonif').value = '0';
-        }
-        catch (error) {
-            console.error(error);
-            alert('Error al agregar el artículo a la factura.');
-        }
-    });
+let detallesEnMemoria = [];
+// DOM Filtros
+const formFiltros = document.getElementById('form-filtros');
+const btnLimpiarFiltros = document.getElementById('btn-limpiar-filtros');
+const filtroNumero = document.getElementById('filtro-numero');
+const filtroCliente = document.getElementById('filtro-cliente');
+const filtroFechaDesde = document.getElementById('filtro-fecha-desde');
+const filtroFechaHasta = document.getElementById('filtro-fecha-hasta');
+const filtroCondicionIva = document.getElementById('filtro-condicion-iva');
+// DOM Alta
+const formAlta = document.getElementById('form-alta-factura');
+const inputClienteId = document.getElementById('alta-cliente-id');
+const inputCondicionIvaId = document.getElementById('alta-condicion-iva-id');
+const inputPuntoVentaId = document.getElementById('alta-punto-venta-id');
+const inputTipoMonedaId = document.getElementById('alta-tipo-moneda-id');
+const inputObservaciones = document.getElementById('alta-observaciones');
+// DOM Renglones
+const inputItemArticuloId = document.getElementById('item-articulo-id');
+const inputItemDesc = document.getElementById('item-descripcion');
+const inputItemCant = document.getElementById('item-cantidad');
+const inputItemBonif = document.getElementById('item-bonificacion');
+const btnAgregarDetalle = document.getElementById('btn-agregar-detalle');
+// Tablas y PDF
+const tablaDetallesBody = document.getElementById('tabla-detalles-temp-body');
+const tablaFacturasBody = document.getElementById('tabla-facturas-body');
+const btnExportarPdf = document.getElementById('btn-exportar-pdf');
+document.addEventListener('DOMContentLoaded', () => {
+    cargarListadoFacturas();
+    btnAgregarDetalle?.addEventListener('click', agregarRenglonEnMemoria);
+    formAlta?.addEventListener('submit', manejarAltaFactura);
+    formFiltros?.addEventListener('submit', manejarBusquedaFiltros);
+    btnLimpiarFiltros?.addEventListener('click', limpiarFiltros);
+    btnExportarPdf?.addEventListener('click', descargarReportePdf);
 });
-// Cargar opciones en los select desde los catálogos del Backend
-async function inicializarCatalogos() {
-    try {
-        const [clientes, condiciones, puntosVenta, monedas, articulos] = await Promise.all([
-            facturaService.obtenerClientes(),
-            facturaService.obtenerCondicionesIva(),
-            facturaService.obtenerPuntosVenta(),
-            facturaService.obtenerTiposMoneda(),
-            facturaService.obtenerArticulos()
-        ]);
-        articulosCatalogo = articulos;
-        // 1. Clientes
-        const selCliente = document.getElementById('cliente-id');
-        if (selCliente) {
-            clientes.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id.toString();
-                opt.textContent = `${c.denominacion} (CUIT: ${c.cuitCuil})`;
-                selCliente.appendChild(opt);
-            });
-        }
-        // 2. Condiciones de IVA (formulario y filtro)
-        const selCondIvaForm = document.getElementById('cond-iva-id');
-        const selCondIvaFiltro = document.getElementById('filtro-cond-iva');
-        condiciones.forEach(ci => {
-            if (selCondIvaForm) {
-                const opt = document.createElement('option');
-                opt.value = ci.id.toString();
-                opt.textContent = `${ci.denominacion} (AFIP: ${ci.codigoAfip})`;
-                selCondIvaForm.appendChild(opt);
-            }
-            if (selCondIvaFiltro) {
-                const optFiltro = document.createElement('option');
-                optFiltro.value = ci.id.toString();
-                optFiltro.textContent = ci.denominacion;
-                selCondIvaFiltro.appendChild(optFiltro);
-            }
-        });
-        // 3. Puntos de Venta
-        const selPv = document.getElementById('pv-id');
-        if (selPv) {
-            puntosVenta.forEach(pv => {
-                const opt = document.createElement('option');
-                opt.value = pv.id.toString();
-                opt.textContent = `Punto ${pv.numero} - ${pv.descripcion}`;
-                selPv.appendChild(opt);
-            });
-        }
-        // 4. Tipos de Moneda
-        const selMoneda = document.getElementById('moneda-id');
-        if (selMoneda) {
-            monedas.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id.toString();
-                opt.textContent = `${m.denominacion} (${m.simbolo})`;
-                selMoneda.appendChild(opt);
-            });
-        }
-        // 5. Artículos para formulario de alta y de edición
-        const selArticulo = document.getElementById('det-articulo');
-        const selEditArticulo = document.getElementById('edit-det-articulo');
-        articulos.forEach(a => {
-            const label = `[${a.codigo}] ${a.denominacion} - $${a.precioVenta.toFixed(2)}`;
-            if (selArticulo) {
-                const opt = document.createElement('option');
-                opt.value = a.listaPrecioArticuloId.toString();
-                opt.textContent = label;
-                selArticulo.appendChild(opt);
-            }
-            if (selEditArticulo) {
-                const opt = document.createElement('option');
-                opt.value = a.listaPrecioArticuloId.toString();
-                opt.textContent = label;
-                selEditArticulo.appendChild(opt);
-            }
-        });
+function agregarRenglonEnMemoria() {
+    const articuloId = parseInt(inputItemArticuloId.value);
+    const cantidad = parseFloat(inputItemCant.value);
+    const bonificacion = parseFloat(inputItemBonif.value) || 0;
+    const descripcion = inputItemDesc.value.trim() || `Artículo #${articuloId}`;
+    if (isNaN(articuloId) || articuloId <= 0) {
+        alert('Debe indicar un ID de artículo / lista válido.');
+        inputItemArticuloId.focus();
+        return;
     }
-    catch (e) {
-        console.warn('No se pudieron cargar los catálogos auxiliares (posiblemente backend apagado):', e);
+    if (isNaN(cantidad) || cantidad <= 0) {
+        alert('La cantidad debe ser mayor a 0.');
+        inputItemCant.focus();
+        return;
     }
+    detallesEnMemoria.push({
+        listaPrecioArticuloId: articuloId,
+        articuloId: articuloId,
+        descripcion: descripcion,
+        cantidad: cantidad,
+        porcentajeBonificacion: bonificacion
+    });
+    renderizarTablaDetalles();
+    inputItemArticuloId.value = '';
+    inputItemDesc.value = '';
+    inputItemCant.value = '1';
+    inputItemBonif.value = '0';
+    inputItemArticuloId.focus();
 }
-// Cargar y renderizar la tabla principal de facturas
-async function cargarTablaFacturas(filtros) {
-    const tbody = document.querySelector('#tabla-facturas tbody');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Cargando facturas...</td></tr>';
-    const contador = document.getElementById('contador-facturas');
-    try {
-        const facturas = await facturaService.obtenerFacturas(filtros);
-        tbody.innerHTML = '';
-        if (contador)
-            contador.textContent = `${facturas.length} factura(s)`;
-        if (facturas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No se encontraron facturas con los filtros aplicados.</td></tr>';
-            return;
-        }
-        facturas.forEach(f => {
-            const tr = document.createElement('tr');
-            const fechaFormateada = formatearFecha(f.fechaEmision);
-            tr.innerHTML = `
-                <td><strong>#${f.numeroFactura}</strong></td>
-                <td>${fechaFormateada}</td>
-                <td>${f.clienteDenominacion || 'Consumidor Final'}</td>
-                <td><span class="tag">${f.condicionIva || '-'}</span></td>
-                <td>${f.puntoVentaDescripcion || '-'}</td>
-                <td style="text-align: center;">${f.cantidadItems || 0}</td>
-                <td><strong>$${(f.importeFinal || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></td>
-                <td>
-                    <button class="btn btn-sm btn-edit btn-accion-editar" data-id="${f.id}" title="Editar artículos de esta factura">
-                        Editar Artículos
-                    </button>
-                    <button class="btn btn-sm btn-delete btn-accion-eliminar" data-id="${f.id}" data-num="${f.numeroFactura}" title="Eliminar factura (Baja lógica)">
-                        Eliminar
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
+function renderizarTablaDetalles() {
+    tablaDetallesBody.innerHTML = '';
+    if (detallesEnMemoria.length === 0) {
+        tablaDetallesBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted">No se agregaron renglones todavía.</td>
+            </tr>
+        `;
+        return;
+    }
+    detallesEnMemoria.forEach((item, index) => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>#${item.listaPrecioArticuloId}</td>
+            <td>${item.descripcion}</td>
+            <td>${item.cantidad}</td>
+            <td>${item.porcentajeBonificacion || 0}%</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm" data-idx="${index}">Quitar</button>
+            </td>
+        `;
+        fila.querySelector('button')?.addEventListener('click', () => {
+            detallesEnMemoria.splice(index, 1);
+            renderizarTablaDetalles();
         });
-        vincularAccionesTabla();
+        tablaDetallesBody.appendChild(fila);
+    });
+}
+async function manejarAltaFactura(e) {
+    e.preventDefault();
+    if (detallesEnMemoria.length === 0) {
+        alert('Debe cargar al menos un renglón antes de registrar la factura.');
+        return;
+    }
+    const payload = {
+        clienteId: parseInt(inputClienteId.value),
+        condicionIvaId: parseInt(inputCondicionIvaId.value),
+        puntoVentaId: parseInt(inputPuntoVentaId.value),
+        tipoMonedaId: parseInt(inputTipoMonedaId.value),
+        observaciones: inputObservaciones.value.trim() || undefined,
+        detalles: detallesEnMemoria
+    };
+    try {
+        const res = await facturaService.crearFactura(payload);
+        const numeroGenerado = res.numeroFactura ?? res.numero ?? 'OK';
+        alert(`¡Factura N° ${numeroGenerado} registrada con éxito!`);
+        formAlta.reset();
+        detallesEnMemoria = [];
+        renderizarTablaDetalles();
+        await cargarListadoFacturas();
     }
     catch (error) {
         console.error(error);
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">No se pudo conectar con el servidor backend (http://localhost:8080).</td></tr>';
+        alert(`Error al emitir factura: ${error.message}`);
     }
 }
-// Vincular botones Editar y Eliminar en la tabla
-function vincularAccionesTabla() {
-    // Editar artículos
-    document.querySelectorAll('.btn-accion-editar').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = Number(e.currentTarget.getAttribute('data-id'));
-            if (!id)
-                return;
-            await abrirPantallaEdicion(id);
-        });
-    });
-    // Eliminar (Baja Lógica)
-    document.querySelectorAll('.btn-accion-eliminar').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = Number(e.currentTarget.getAttribute('data-id'));
-            const num = e.currentTarget.getAttribute('data-num');
-            if (confirm(`¿Confirma que desea dar de baja lógica la Factura N° ${num}?`)) {
-                try {
-                    await facturaService.darDeBajaLogica(id);
-                    alert(`Factura N° ${num} dada de baja lógicamente.`);
-                    await cargarTablaFacturas();
-                }
-                catch (err) {
-                    alert('Error al realizar la baja lógica de la factura.');
-                }
-            }
-        });
-    });
-}
-// Pantalla 2: Abrir y renderizar vista de edición de artículos
-async function abrirPantallaEdicion(facturaId) {
+async function cargarListadoFacturas(filtros) {
+    tablaFacturasBody.innerHTML = `<tr><td colspan="8" class="text-center">Cargando comprobantes...</td></tr>`;
     try {
-        facturaActualId = facturaId;
-        const factura = await facturaService.obtenerFacturaPorId(facturaId);
-        renderizarPantallaEdicion(factura);
-        mostrarPantalla('edicion');
+        const facturas = await facturaService.obtenerFacturas(filtros);
+        renderizarTablaFacturas(facturas);
     }
-    catch (e) {
-        console.error(e);
-        alert('No se pudieron obtener los datos de la factura.');
+    catch (error) {
+        console.error(error);
+        tablaFacturasBody.innerHTML = `<tr><td colspan="8" class="text-center" style="color: red;">Error al consultar facturas: ${error.message}</td></tr>`;
     }
 }
-function renderizarPantallaEdicion(f) {
-    document.getElementById('edit-num-factura').textContent = f.numero.toString();
-    document.getElementById('edit-cliente').textContent = f.clienteDenominacion || 'Consumidor Final';
-    document.getElementById('edit-cuit').textContent = f.clienteCuit || '-';
-    document.getElementById('edit-cond-iva').textContent = f.condicionIvaDenominacion || '-';
-    document.getElementById('edit-pv').textContent = f.puntoVentaDescripcion || '-';
-    document.getElementById('edit-fecha').textContent = formatearFecha(f.fechaEmision);
-    const badgeEstado = document.getElementById('edit-estado');
-    if (badgeEstado) {
-        badgeEstado.textContent = f.estado || 'EMITIDA';
-        badgeEstado.className = f.estado === 'ANULADA' ? 'badge badge-danger' : 'badge badge-success';
+function renderizarTablaFacturas(facturas) {
+    tablaFacturasBody.innerHTML = '';
+    if (!facturas || facturas.length === 0) {
+        tablaFacturasBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No se encontraron facturas registradas.</td></tr>`;
+        return;
     }
-    // Renderizar detalles
-    const tbody = document.querySelector('#tabla-edit-detalles tbody');
-    tbody.innerHTML = '';
-    if (!f.detalles || f.detalles.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Esta factura no contiene artículos cargados.</td></tr>';
-    }
-    else {
-        f.detalles.forEach(d => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><code>${d.codigoArticulo || '-'}</code></td>
-                <td>${d.denominacionArticulo || d.descripcion || 'Artículo'}</td>
-                <td style="text-align: center;">${d.cantidad}</td>
-                <td>$${d.precioUnitario.toFixed(2)}</td>
-                <td style="text-align: center;">${d.porcentajeBonificacion || 0}%</td>
-                <td>$${d.importeNeto.toFixed(2)}</td>
-                <td>$${d.importeIva.toFixed(2)}</td>
-                <td><strong>$${d.importeSubtotal.toFixed(2)}</strong></td>
-                <td>
-                    <button class="btn btn-sm btn-delete btn-quitar-articulo-factura" data-detalle-id="${d.id}" title="Quitar este artículo">
-                        Quitar
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-    // Total
-    const totalSpan = document.getElementById('edit-total-factura');
-    if (totalSpan) {
-        totalSpan.textContent = (f.importeTotal || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 });
-    }
-    // Vincular botones para quitar renglón
-    document.querySelectorAll('.btn-quitar-articulo-factura').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const detalleId = Number(e.currentTarget.getAttribute('data-detalle-id'));
-            if (!facturaActualId || !detalleId)
-                return;
-            if (confirm('¿Desea quitar este artículo de la factura?')) {
-                try {
-                    const actualizada = await facturaService.eliminarDetalle(facturaActualId, detalleId);
-                    renderizarPantallaEdicion(actualizada);
-                }
-                catch (err) {
-                    alert('Error al quitar el artículo.');
-                }
-            }
-        });
-    });
-}
-// Renderizar tabla temporal de ítems en el formulario de alta
-function renderizarTablaDetallesTemp() {
-    const tbody = document.querySelector('#tabla-detalles-temp tbody');
-    tbody.innerHTML = '';
-    let total = 0;
-    detallesTemporales.forEach((det, index) => {
-        const bruto = det.cantidad * (det.precioUnitario || 0);
-        const bonif = det.porcentajeBonificacion || 0;
-        const neto = bruto - (bruto * (bonif / 100));
-        const iva = neto * 0.21;
-        const subtotal = neto + iva;
-        total += subtotal;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${det.descripcion || 'Artículo'}</td>
-            <td style="text-align:center;">${det.cantidad}</td>
-            <td>$${(det.precioUnitario || 0).toFixed(2)}</td>
-            <td style="text-align:center;">${bonif}%</td>
-            <td><strong>$${subtotal.toFixed(2)}</strong></td>
-            <td><button type="button" class="btn btn-sm btn-delete btn-quitar-detalle" data-index="${index}">Quitar</button></td>
+    facturas.forEach(f => {
+        const fechaFormateada = f.fechaEmision ? new Date(f.fechaEmision).toLocaleDateString('es-AR') : '-';
+        const total = typeof f.importeFinal === 'number' ? f.importeFinal : 0;
+        const importeFormateado = `$ ${total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td><strong>#${f.numeroFactura}</strong></td>
+            <td>${fechaFormateada}</td>
+            <td>${f.clienteDenominacion || '-'}</td>
+            <td>${f.condicionIva || '-'}</td>
+            <td>${f.puntoVentaDescripcion || '-'}</td>
+            <td>${f.cantidadItems || 0}</td>
+            <td><strong>${importeFormateado}</strong></td>
+            <td>
+                <div class="actions-cell">
+                    <button class="btn btn-warning btn-sm btn-anular">Anular</button>
+                    <button class="btn btn-danger btn-sm btn-eliminar">Eliminar</button>
+                </div>
+            </td>
         `;
-        tbody.appendChild(tr);
-    });
-    const spanTotal = document.getElementById('nuevo-total-temp');
-    if (spanTotal) {
-        spanTotal.textContent = `$${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
-    }
-    document.querySelectorAll('.btn-quitar-detalle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const idx = Number(e.currentTarget.getAttribute('data-index'));
-            detallesTemporales.splice(idx, 1);
-            renderizarTablaDetallesTemp();
-        });
+        fila.querySelector('.btn-anular')?.addEventListener('click', () => ejecutarAnularFactura(f.id, f.numeroFactura));
+        fila.querySelector('.btn-eliminar')?.addEventListener('click', () => ejecutarEliminarFactura(f.id, f.numeroFactura));
+        tablaFacturasBody.appendChild(fila);
     });
 }
-function limpiarInputsDetalle() {
-    const sel = document.getElementById('det-articulo');
-    if (sel)
-        sel.value = '';
-    const cant = document.getElementById('det-cantidad');
-    if (cant)
-        cant.value = '1';
-    const precio = document.getElementById('det-precio');
-    if (precio)
-        precio.value = '';
-    const bonif = document.getElementById('det-bonif');
-    if (bonif)
-        bonif.value = '0';
-}
-function mostrarPantalla(pantalla) {
-    const principal = document.getElementById('pantalla-principal');
-    const edicion = document.getElementById('pantalla-edicion');
-    if (pantalla === 'principal') {
-        if (principal)
-            principal.style.display = 'block';
-        if (edicion)
-            edicion.style.display = 'none';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    else {
-        if (principal)
-            principal.style.display = 'none';
-        if (edicion)
-            edicion.style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-}
-function formatearFecha(fechaStr) {
-    if (!fechaStr)
-        return '-';
+async function ejecutarAnularFactura(id, numero) {
+    if (!confirm(`¿Está seguro de anular la Factura N° ${numero}?`))
+        return;
     try {
-        const d = new Date(fechaStr);
-        if (isNaN(d.getTime()))
-            return fechaStr;
-        return d.toLocaleDateString('es-AR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
+        await facturaService.actualizarEstado(id, 'ANULADA', 'Anulada desde panel web');
+        alert(`Factura N° ${numero} anulada correctamente.`);
+        await cargarListadoFacturas();
     }
-    catch {
-        return fechaStr;
+    catch (error) {
+        console.error(error);
+        alert(`Error al anular: ${error.message}`);
+    }
+}
+async function ejecutarEliminarFactura(id, numero) {
+    if (!confirm(`¿Desea dar de baja la Factura N° ${numero}?`))
+        return;
+    try {
+        await facturaService.eliminarFactura(id);
+        alert(`Factura N° ${numero} eliminada exitosamente.`);
+        await cargarListadoFacturas();
+    }
+    catch (error) {
+        console.error(error);
+        alert(`Error al eliminar: ${error.message}`);
+    }
+}
+async function manejarBusquedaFiltros(e) {
+    e.preventDefault();
+    await cargarListadoFacturas(obtenerFiltrosActuales());
+}
+function limpiarFiltros() {
+    formFiltros.reset();
+    cargarListadoFacturas();
+}
+function obtenerFiltrosActuales() {
+    const filtros = {};
+    if (filtroNumero.value)
+        filtros.numero = parseInt(filtroNumero.value);
+    if (filtroCliente.value.trim())
+        filtros.cliente = filtroCliente.value.trim();
+    if (filtroFechaDesde.value)
+        filtros.fechaDesde = filtroFechaDesde.value;
+    if (filtroFechaHasta.value)
+        filtros.fechaHasta = filtroFechaHasta.value;
+    if (filtroCondicionIva.value)
+        filtros.condicionIvaId = parseInt(filtroCondicionIva.value);
+    return filtros;
+}
+async function descargarReportePdf() {
+    try {
+        const filtros = obtenerFiltrosActuales();
+        await facturaService.descargarPdf(filtros);
+    }
+    catch (error) {
+        console.error(error);
+        alert(`Error al generar o descargar el PDF: ${error.message}`);
     }
 }

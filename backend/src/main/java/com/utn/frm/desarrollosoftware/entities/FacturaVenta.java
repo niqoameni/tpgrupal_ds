@@ -93,12 +93,16 @@ public class FacturaVenta extends  AuditoriaApp{
     public void calcularTotal() {
         double total = 0.0;
         double cobrado = 0.0;
-        for (FacturaVentaDetalle detalle : this.detalles){
-            total = total + (detalle.getImporteNeto() + detalle.getImporteIva());
-            cobrado = cobrado + (detalle.getImporteSubtotal()); //TODO: Esto deberia asignarse solo cuando se registra un recibo de cobro. Ver si conviene sacarlo.
+
+        if (this.detalles != null) {
+            for (FacturaVentaDetalle detalle : this.detalles) {
+                total += (detalle.getImporteNeto() + detalle.getImporteIva());
+                cobrado += detalle.getImporteSubtotal();
+            }
         }
+
         this.importeTotal = total;
-        this.importeCobrado = cobrado; //TODO: Idem arriba.
+        this.importeCobrado = cobrado;
     }
 
     public void addDetalle(FacturaVentaDetalle detalle){

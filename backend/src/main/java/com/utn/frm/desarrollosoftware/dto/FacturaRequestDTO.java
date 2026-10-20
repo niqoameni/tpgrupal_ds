@@ -22,6 +22,6 @@ public class FacturaRequestDTO {
     private Long tipoMonedaId;
     private String estado;
     private String observaciones;
-    private String usuario; // Usuario que registra la operación (opcional)
+    private String usuario;
     private List<FacturaDetalleRequestDTO> detalles = new ArrayList<>();
 }

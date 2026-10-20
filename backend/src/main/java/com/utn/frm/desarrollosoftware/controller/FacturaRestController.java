@@ -1,18 +1,20 @@
 package com.utn.frm.desarrollosoftware.controller;
 
-import com.utn.frm.desarrollosoftware.dto.FacturaDetalleRequestDTO;
 import com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO;
 import com.utn.frm.desarrollosoftware.dto.FacturaRequestDTO;
-import com.utn.frm.desarrollosoftware.dto.FacturaResponseDTO;
 import com.utn.frm.desarrollosoftware.service.FacturaService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.utn.frm.desarrollosoftware.util.PdfItextExporter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/facturas")
@@ -33,52 +35,54 @@ public class FacturaRestController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaHasta,
             @RequestParam(required = false) Long condicionIvaId
     ) {
-        List<FacturaReporteDTO> facturas = facturaService.buscarFacturas(
+        List<FacturaReporteDTO> lista = facturaService.buscarFacturas(
                 numero,
                 cliente,
                 fechaDesde,
                 fechaHasta,
                 condicionIvaId
         );
-        return ResponseEntity.ok(facturas);
+        return ResponseEntity.ok(lista);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<FacturaResponseDTO> obtenerFacturaPorId(@PathVariable Long id) {
-        FacturaResponseDTO factura = facturaService.obtenerFacturaPorId(id);
-        return ResponseEntity.ok(factura);
+    @GetMapping("/pdf")
+    public ResponseEntity<byte[]> descargarReportePdf(
+            @RequestParam(required = false) Long numero,
+            @RequestParam(required = false) String cliente,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fechaDesde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fechaHasta,
+            @RequestParam(required = false) Long condicionIvaId
+    ) {
+        List<FacturaReporteDTO> facturas = facturaService.buscarFacturas(numero, cliente, fechaDesde, fechaHasta, condicionIvaId);
+        byte[] pdfBytes = PdfItextExporter.exportarEnMemoria(facturas);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=reporte_ventas.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 
     @PostMapping
-    public ResponseEntity<FacturaResponseDTO> crearFactura(@RequestBody FacturaRequestDTO request) {
-        FacturaResponseDTO nueva = facturaService.crearFactura(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
+    public ResponseEntity<FacturaReporteDTO> crearFactura(@RequestBody FacturaRequestDTO request) {
+        FacturaReporteDTO nuevaFactura = facturaService.crear(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevaFactura);
     }
 
-    @PostMapping("/{id}/detalles")
-    public ResponseEntity<FacturaResponseDTO> agregarDetalle(
+    @PutMapping("/{id}")
+    public ResponseEntity<FacturaReporteDTO> actualizarFactura(
             @PathVariable Long id,
-            @RequestBody FacturaDetalleRequestDTO request
+            @RequestBody FacturaRequestDTO request
     ) {
-        FacturaResponseDTO factura = facturaService.agregarDetalle(id, request);
-        return ResponseEntity.ok(factura);
-    }
-
-    @DeleteMapping("/{id}/detalles/{detalleId}")
-    public ResponseEntity<FacturaResponseDTO> eliminarDetalle(
-            @PathVariable Long id,
-            @PathVariable Long detalleId
-    ) {
-        FacturaResponseDTO factura = facturaService.eliminarDetalle(id, detalleId);
-        return ResponseEntity.ok(factura);
+        FacturaReporteDTO facturaActualizada = facturaService.actualizar(id, request);
+        return ResponseEntity.ok(facturaActualizada);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> darDeBajaFactura(
+    public ResponseEntity<Void> eliminarFactura(
             @PathVariable Long id,
             @RequestParam(required = false, defaultValue = "admin") String usuario
     ) {
-        facturaService.darDeBajaLogica(id, usuario);
-        return ResponseEntity.ok(Map.of("mensaje", "Factura dada de baja lógicamente con éxito"));
+        facturaService.eliminar(id, usuario);
+        return ResponseEntity.noContent().build();
     }
 }

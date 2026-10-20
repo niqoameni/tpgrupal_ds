@@ -3,331 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Gestión de Facturación - Sistema CRUD</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <!-- ========================================== -->
-        <!-- PANTALLA 1: LISTADO Y GESTIÓN PRINCIPAL   -->
-        <!-- ========================================== -->
-        <main id="pantalla-principal">
-            <header class="app-header">
-                <div>
-                    <h1>Sistema de Facturación</h1>
-                    <p class="subtitle">Consulta, emisión y administración de comprobantes de venta</p>
-                </div>
-                <button type="button" id="btn-toggle-nueva-factura" class="btn btn-primary">
-                    + Cargar Nueva Factura
-                </button>
-            </header>
+        <header class="app-header">
+            <h1>Sistema de Facturación</h1>
+            <p>Módulo de Gestión de Facturas de Venta</p>
+        </header>
 
-            <!-- Sección 1: Formulario de búsqueda con filtros -->
-            <section class="card filter-card">
-                <div class="card-header">
-                    <h2>Buscar y Filtrar Facturas</h2>
-                </div>
-                <form id="filter-form" class="filter-form">
+        <!-- Form de busqueda -->
+        <section class="card section-filtros">
+            <h2>1. Búsqueda y Filtros</h2>
+            <form id="form-filtros">
+                <div class="form-grid">
                     <div class="form-group">
-                        <label for="filtro-numero">N° de Factura</label>
+                        <label for="filtro-numero">N° Comprobante:</label>
                         <input type="number" id="filtro-numero" placeholder="Ej: 1001">
                     </div>
-
                     <div class="form-group">
-                        <label for="filtro-cliente">Cliente (Nombre o CUIT)</label>
-                        <input type="text" id="filtro-cliente" placeholder="Ej: Ameni o 20-...">
+                        <label for="filtro-cliente">Cliente (Nombre o CUIT):</label>
+                        <input type="text" id="filtro-cliente" placeholder="Buscar texto...">
                     </div>
-
                     <div class="form-group">
-                        <label for="filtro-desde">Fecha Desde</label>
-                        <input type="date" id="filtro-desde">
+                        <label for="filtro-fecha-desde">Fecha Desde:</label>
+                        <input type="date" id="filtro-fecha-desde">
                     </div>
-
                     <div class="form-group">
-                        <label for="filtro-hasta">Fecha Hasta</label>
-                        <input type="date" id="filtro-hasta">
+                        <label for="filtro-fecha-hasta">Fecha Hasta:</label>
+                        <input type="date" id="filtro-fecha-hasta">
                     </div>
-
                     <div class="form-group">
-                        <label for="filtro-cond-iva">Condición de IVA</label>
-                        <select id="filtro-cond-iva">
-                            <option value="">-- Todas las condiciones --</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button type="submit" id="btn-filtrar" class="btn btn-primary">Filtrar</button>
-                        <button type="button" id="btn-limpiar-filtros" class="btn btn-secondary">Limpiar</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Sección 2: Formulario de alta de factura (Colapsable) -->
-            <section id="seccion-nueva-factura" class="card form-card" style="display: none;">
-                <div class="card-header">
-                    <h2>Carga de Nueva Factura</h2>
-                    <button type="button" id="btn-cerrar-nueva-factura" class="btn-close" title="Cerrar">&times;</button>
-                </div>
-
-                <form id="factura-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="num-factura">N° Factura (opcional, automático)</label>
-                            <input type="number" id="num-factura" placeholder="Autonumérico">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fecha-emision">Fecha Emisión *</label>
-                            <input type="date" id="fecha-emision" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="cliente-id">Cliente *</label>
-                            <select id="cliente-id" required>
-                                <option value="">-- Seleccionar Cliente --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="cond-iva-id">Condición de IVA *</label>
-                            <select id="cond-iva-id" required>
-                                <option value="">-- Seleccionar Condición --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="pv-id">Punto de Venta *</label>
-                            <select id="pv-id" required>
-                                <option value="">-- Seleccionar Punto de Venta --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="moneda-id">Tipo de Moneda *</label>
-                            <select id="moneda-id" required>
-                                <option value="">-- Seleccionar Moneda --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="observaciones">Observaciones</label>
-                            <input type="text" id="observaciones" placeholder="Detalles u observaciones de la operación">
-                        </div>
-                    </div>
-
-                    <!-- Sub-sección: Agregar Ítems -->
-                    <div class="subcard">
-                        <h3>Agregar Artículos a la Factura</h3>
-                        <div class="items-grid">
-                            <div class="form-group full-width">
-                                <label for="det-articulo">Artículo *</label>
-                                <select id="det-articulo">
-                                    <option value="">-- Seleccionar Artículo --</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="det-cantidad">Cantidad *</label>
-                                <input type="number" id="det-cantidad" min="1" step="1" value="1">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="det-precio">Precio Unitario ($) *</label>
-                                <input type="number" id="det-precio" min="0" step="0.01" placeholder="0.00">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="det-bonif">% Bonificación</label>
-                                <input type="number" id="det-bonif" min="0" max="100" step="0.5" value="0">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="det-iva">% IVA</label>
-                                <input type="number" id="det-iva" value="21" readonly>
-                            </div>
-
-                            <div class="form-group items-action">
-                                <button type="button" id="btn-agregar-detalle" class="btn btn-secondary">
-                                    + Añadir a la lista
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tabla temporal de ítems -->
-                        <div class="table-responsive">
-                            <table class="data-table" id="tabla-detalles-temp">
-                                <thead>
-                                    <tr>
-                                        <th>Artículo</th>
-                                        <th>Cantidad</th>
-                                        <th>Precio Unit.</th>
-                                        <th>Bonif. %</th>
-                                        <th>Subtotal</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-
-                        <div class="total-badge">
-                            <span>Total Estimado:</span>
-                            <strong id="nuevo-total-temp">$0.00</strong>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-success">Guardar y Crear Factura</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Sección 3: Listado de Facturas disponibles en la BD -->
-            <section class="card table-card">
-                <div class="card-header">
-                    <h2>Facturas Registradas en Base de Datos</h2>
-                    <span id="contador-facturas" class="badge">0 facturas</span>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="data-table" id="tabla-facturas">
-                        <thead>
-                            <tr>
-                                <th>N° Factura</th>
-                                <th>Fecha Emisión</th>
-                                <th>Cliente</th>
-                                <th>Condición IVA</th>
-                                <th>Punto de Venta</th>
-                                <th>Cant. Ítems</th>
-                                <th>Total ($)</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Se renderiza dinámicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-
-        <!-- ======================================================== -->
-        <!-- PANTALLA 2: EDICIÓN DE ARTÍCULOS DE UNA FACTURA ESPECÍFICA -->
-        <!-- ======================================================== -->
-        <main id="pantalla-edicion" style="display: none;">
-            <header class="app-header">
-                <div>
-                    <h1>Edición de Factura N° <span id="edit-num-factura">-</span></h1>
-                    <p class="subtitle">Modifica, agrega o elimina artículos de esta factura</p>
-                </div>
-                <button type="button" id="btn-volver-principal" class="btn btn-secondary">
-                    &larr; Volver al Listado Principal
-                </button>
-            </header>
-
-            <!-- Resumen de la Factura -->
-            <section class="card info-card">
-                <div class="info-grid">
-                    <div>
-                        <span class="info-label">Cliente:</span>
-                        <strong id="edit-cliente">-</strong>
-                    </div>
-                    <div>
-                        <span class="info-label">CUIT:</span>
-                        <strong id="edit-cuit">-</strong>
-                    </div>
-                    <div>
-                        <span class="info-label">Condición IVA:</span>
-                        <strong id="edit-cond-iva">-</strong>
-                    </div>
-                    <div>
-                        <span class="info-label">Punto de Venta:</span>
-                        <strong id="edit-pv">-</strong>
-                    </div>
-                    <div>
-                        <span class="info-label">Fecha Emisión:</span>
-                        <strong id="edit-fecha">-</strong>
-                    </div>
-                    <div>
-                        <span class="info-label">Estado:</span>
-                        <span id="edit-estado" class="badge badge-success">-</span>
+                        <label for="filtro-condicion-iva">ID Condición IVA:</label>
+                        <input type="number" id="filtro-condicion-iva" placeholder="ID (ej: 1)">
                     </div>
                 </div>
-            </section>
-
-            <!-- Agregar Artículo a esta Factura -->
-            <section class="card form-card">
-                <div class="card-header">
-                    <h2>Agregar Artículo a esta Factura</h2>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Buscar Facturas</button>
+                    <button type="button" id="btn-limpiar-filtros" class="btn btn-secondary">Limpiar Filtros</button>
                 </div>
-                <div class="items-grid">
+            </form>
+        </section>
+
+        <!-- Form de alta -->
+        <section class="card section-alta">
+            <h2>2. Alta de Factura de Venta</h2>
+            <form id="form-alta-factura">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="alta-cliente-id">ID Cliente: *</label>
+                        <input type="number" id="alta-cliente-id" required placeholder="Ej: 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta-condicion-iva-id">ID Condición IVA: *</label>
+                        <input type="number" id="alta-condicion-iva-id" required placeholder="Ej: 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta-punto-venta-id">ID Punto de Venta: *</label>
+                        <input type="number" id="alta-punto-venta-id" required placeholder="Ej: 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta-tipo-moneda-id">ID Tipo de Moneda: *</label>
+                        <input type="number" id="alta-tipo-moneda-id" required placeholder="Ej: 1">
+                    </div>
                     <div class="form-group full-width">
-                        <label for="edit-det-articulo">Seleccionar Artículo</label>
-                        <select id="edit-det-articulo">
-                            <option value="">-- Seleccionar Artículo con Precio --</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-det-cantidad">Cantidad</label>
-                        <input type="number" id="edit-det-cantidad" min="1" step="1" value="1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-det-precio">Precio Unitario ($)</label>
-                        <input type="number" id="edit-det-precio" min="0" step="0.01" placeholder="0.00">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-det-bonif">% Bonificación</label>
-                        <input type="number" id="edit-det-bonif" min="0" max="100" step="0.5" value="0">
-                    </div>
-
-                    <div class="form-group items-action">
-                        <button type="button" id="btn-edit-agregar-articulo" class="btn btn-primary">
-                            + Agregar Artículo
-                        </button>
+                        <label for="alta-observaciones">Observaciones:</label>
+                        <input type="text" id="alta-observaciones" placeholder="Detalle adicional opcional...">
                     </div>
                 </div>
-            </section>
 
-            <!-- Grilla de Artículos Cargados -->
-            <section class="card table-card">
-                <div class="card-header">
-                    <h2>Artículos en la Factura</h2>
+                <fieldset class="sub-form-detalles">
+                    <legend>Agregar Renglón de Venta</legend>
+                    <div class="form-grid-items">
+                <div class="form-group">
+                    <label for="item-articulo-id">ID Art. / Lista: *</label>
+                    <input type="number" id="item-articulo-id" placeholder="Ej: 1" min="1">
                 </div>
-                <div class="table-responsive">
-                    <table class="data-table" id="tabla-edit-detalles">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Descripción / Denominación</th>
-                                <th>Cantidad</th>
-                                <th>Precio Unit.</th>
-                                <th>Bonif. (%)</th>
-                                <th>Neto</th>
-                                <th>IVA (21%)</th>
-                                <th>Subtotal</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Se renderiza dinámicamente -->
-                        </tbody>
-                    </table>
+                <div class="form-group">
+                    <label for="item-descripcion">Descripción:</label>
+                    <input type="text" id="item-descripcion" placeholder="Nombre o detalle opcional">
                 </div>
+                <div class="form-group">
+                    <label for="item-cantidad">Cantidad: *</label>
+                    <input type="number" id="item-cantidad" value="1" min="1" step="any">
+                </div>
+                <div class="form-group">
+                    <label for="item-bonificacion">% Bonif.:</label>
+                    <input type="number" id="item-bonificacion" value="0" min="0" max="100" step="any">
+                </div>
+                <div class="form-group form-group-btn">
+                    <button type="button" id="btn-agregar-detalle" class="btn btn-outline">+ Añadir Renglón</button>
+                </div>
+            </div>
 
-                <div class="invoice-summary">
-                    <div class="total-badge large">
-                        <span>Total Actualizado de la Factura:</span>
-                        <strong id="edit-total-factura">$0.00</strong>
-                    </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID Art. / Lista</th>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                            <th>% Bonif.</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-detalles-temp-body">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No se agregaron renglones todavía.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+                </fieldset>
+
+                <div class="button-group submit-row">
+                    <button type="submit" class="btn btn-success btn-lg">Guardar y Emitir Factura</button>
                 </div>
-            </section>
-        </main>
+            </form>
+        </section>
+
+        <!-- Tabla de facturas -->
+        <section class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>3. Listado de Comprobantes Registrados</h2>
+                <button id="btn-exportar-pdf" class="btn btn-outline" type="button">
+                    📄 Descargar Reporte PDF
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>N° Comp.</th>
+                            <th>Fecha Emisión</th>
+                            <th>Cliente</th>
+                            <th>Condición IVA</th>
+                            <th>Punto Venta</th>
+                            <th>Cant. Ítems</th>
+                            <th>Importe Total</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-facturas-body">
+                        <tr>
+                            <td colspan="8" class="text-center">Cargando comprobantes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
-    <!-- Script principal compilado -->
     <script type="module" src="dist/app.js"></script>
 </body>
 </html>
