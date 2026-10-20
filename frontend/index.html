@@ -35,8 +35,14 @@
                         <input type="date" id="filtro-fecha-hasta">
                     </div>
                     <div class="form-group">
-                        <label for="filtro-condicion-iva">ID Condición IVA:</label>
-                        <input type="number" id="filtro-condicion-iva" placeholder="ID (ej: 1)">
+                        <label for="filtro-condicion-iva">Condición IVA:</label>
+                        <input type="text" id="filtro-condicion-iva" list="lista-condiciones-iva-filtro" placeholder="Todas o escribir...">
+                        <datalist id="lista-condiciones-iva-filtro">
+                            <option value="Consumidor Final"></option>
+                            <option value="Responsable Inscripto"></option>
+                            <option value="Responsable Monotributo"></option>
+                            <option value="IVA Sujeto Exento"></option>
+                        </datalist>
                     </div>
                 </div>
                 <div class="button-group">
@@ -52,20 +58,41 @@
             <form id="form-alta-factura">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="alta-cliente-id">ID Cliente: *</label>
-                        <input type="number" id="alta-cliente-id" required placeholder="Ej: 1">
+                        <label for="alta-cliente-id">Cliente: *</label>
+                        <input type="text" id="alta-cliente-id" list="lista-clientes-alta" required placeholder="Escribir o elegir cliente...">
+                        <datalist id="lista-clientes-alta">
+                            <option value="Nicolas Ameni">ID: 1 - CUIT 23447568519</option>
+                            <option value="Nicolas Contrera">ID: 2 - CUIT 23445675323</option>
+                            <option value="Luciano Cruz">ID: 3 - CUIT 23445445343</option>
+                        </datalist>
                     </div>
                     <div class="form-group">
-                        <label for="alta-condicion-iva-id">ID Condición IVA: *</label>
-                        <input type="number" id="alta-condicion-iva-id" required placeholder="Ej: 1">
+                        <label for="alta-condicion-iva-id">Condición IVA: *</label>
+                        <input type="text" id="alta-condicion-iva-id" list="lista-condiciones-iva-alta" required placeholder="Escribir o elegir condición...">
+                        <datalist id="lista-condiciones-iva-alta">
+                            <option value="Consumidor Final"></option>
+                            <option value="Responsable Inscripto"></option>
+                            <option value="Responsable Monotributo"></option>
+                            <option value="IVA Sujeto Exento"></option>
+                        </datalist>
                     </div>
                     <div class="form-group">
-                        <label for="alta-punto-venta-id">ID Punto de Venta: *</label>
-                        <input type="number" id="alta-punto-venta-id" required placeholder="Ej: 1">
+                        <label for="alta-punto-venta-id">Punto de Venta: *</label>
+                        <input type="text" id="alta-punto-venta-id" list="lista-puntos-venta-alta" required placeholder="Escribir o elegir punto...">
+                        <datalist id="lista-puntos-venta-alta">
+                            <option value="Sucursal Centro">Punto 1 - Av. San Martín 123</option>
+                            <option value="Sucursal Mendoza Shopping">Punto 2 - Acceso Este 3280</option>
+                            <option value="Ventas Online - Web">Punto 3 - Av. España 500</option>
+                        </datalist>
                     </div>
                     <div class="form-group">
-                        <label for="alta-tipo-moneda-id">ID Tipo de Moneda: *</label>
-                        <input type="number" id="alta-tipo-moneda-id" required placeholder="Ej: 1">
+                        <label for="alta-tipo-moneda-id">Tipo de Moneda: *</label>
+                        <input type="text" id="alta-tipo-moneda-id" list="lista-tipos-moneda-alta" required placeholder="Escribir o elegir moneda...">
+                        <datalist id="lista-tipos-moneda-alta">
+                            <option value="Pesos Argentinos ($)"></option>
+                            <option value="Dólar Estadounidense (U$S)"></option>
+                            <option value="Euros (€)"></option>
+                        </datalist>
                     </div>
                     <div class="form-group full-width">
                         <label for="alta-observaciones">Observaciones:</label>
@@ -77,8 +104,16 @@
                     <legend>Agregar Renglón de Venta</legend>
                     <div class="form-grid-items">
                 <div class="form-group">
-                    <label for="item-articulo-id">ID Art. / Lista: *</label>
-                    <input type="number" id="item-articulo-id" placeholder="Ej: 1" min="1">
+                    <label for="item-articulo-id">Artículo / Lista: *</label>
+                    <input type="text" id="item-articulo-id" list="lista-articulos-alta" placeholder="Escribir o elegir artículo...">
+                    <datalist id="lista-articulos-alta">
+                        <option value="1 - Tablet S6 Lite">Precio Ref: $ 785.000,00</option>
+                        <option value="2 - Motorola Edge 70">Precio Ref: $ 647.000,00</option>
+                        <option value="3 - Samsung Galaxy A16">Precio Ref: $ 248.000,00</option>
+                        <option value="4 - Redragon Luce H888">Precio Ref: $ 82.000,00</option>
+                        <option value="5 - Mouse inalambrico Logitech M170">Precio Ref: $ 15.000,00</option>
+                        <option value="6 - Mouse Logitech G203">Precio Ref: $ 39.000,00</option>
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label for="item-descripcion">Descripción:</label>
@@ -89,7 +124,7 @@
                     <input type="number" id="item-cantidad" value="1" min="1" step="any">
                 </div>
                 <div class="form-group">
-                    <label for="item-bonificacion">% Bonif.:</label>
+                    <label for="item-bonificacion">% Descuento:</label>
                     <input type="number" id="item-bonificacion" value="0" min="0" max="100" step="any">
                 </div>
                 <div class="form-group form-group-btn">
@@ -104,7 +139,7 @@
                             <th>ID Art. / Lista</th>
                             <th>Descripción</th>
                             <th>Cantidad</th>
-                            <th>% Bonif.</th>
+                            <th>% Descuento</th>
                             <th class="text-center">Acción</th>
                         </tr>
                     </thead>
@@ -154,6 +189,98 @@
                 </table>
             </div>
         </section>
+    </div>
+
+    <!-- Modal para editar factura con gestión completa de artículos -->
+    <div id="modal-editar-factura" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-editar-titulo">Editar Factura</h3>
+                <button type="button" id="btn-cerrar-modal" class="btn-close">&times;</button>
+            </div>
+            <form id="form-editar-factura">
+                <input type="hidden" id="edit-factura-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="edit-cliente">Cliente: *</label>
+                        <input type="text" id="edit-cliente" list="lista-clientes-alta" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-condicion-iva">Condición IVA: *</label>
+                        <input type="text" id="edit-condicion-iva" list="lista-condiciones-iva-alta" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-punto-venta">Punto de Venta: *</label>
+                        <input type="text" id="edit-punto-venta" list="lista-puntos-venta-alta" required>
+                    </div>
+                </div>
+
+                <!-- Detalle de artículos en edición -->
+                <fieldset class="sub-form-detalles" style="margin-top: 16px;">
+                    <legend>Detalle de Artículos / Renglones de la Factura</legend>
+                    <div class="form-grid-items">
+                        <div class="form-group">
+                            <label for="edit-item-articulo-id">Añadir Artículo:</label>
+                            <input type="text" id="edit-item-articulo-id" list="lista-articulos-alta" placeholder="Elegir artículo...">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-descripcion">Descripción:</label>
+                            <input type="text" id="edit-item-descripcion" placeholder="Nombre...">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-cantidad">Cantidad:</label>
+                            <input type="number" id="edit-item-cantidad" value="1" min="1" step="any">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-descuento">% Descuento:</label>
+                            <input type="number" id="edit-item-descuento" value="0" min="0" max="100" step="any">
+                        </div>
+                        <div class="form-group form-group-btn">
+                            <button type="button" id="btn-edit-agregar-detalle" class="btn btn-outline">+ Añadir Ítem</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="max-height: 220px; overflow-y: auto; margin-top: 10px;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Art. / ID</th>
+                                    <th>Descripción</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unit.</th>
+                                    <th>% Descuento</th>
+                                    <th>Subtotal</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-edit-detalles-body">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Esta factura no tiene renglones.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </fieldset>
+
+                <!-- Resumen de totales calculados en la edición -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 14px 18px; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                    <div>
+                        <span style="font-size: 0.95rem; color: var(--text-secondary);">Cantidad Total de Ítems: </span>
+                        <strong id="edit-total-items-badge" style="font-size: 1.05rem; color: var(--navy-900);">0</strong>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.95rem; color: var(--text-secondary);">Importe Total: </span>
+                        <strong id="edit-total-importe-badge" style="font-size: 1.25rem; color: var(--navy-700);">$ 0,00</strong>
+                        <input type="hidden" id="edit-importe-total" value="0">
+                    </div>
+                </div>
+
+                <div class="button-group submit-row" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary btn-lg">Guardar Cambios de Factura</button>
+                    <button type="button" id="btn-cancelar-modal" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script type="module" src="dist/app.js"></script>

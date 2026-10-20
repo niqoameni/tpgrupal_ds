@@ -4,6 +4,46 @@ import {
     FacturaFiltrosDTO 
 } from '../models/factura.dto.js';
 
+export interface CatalogoItem {
+    id: number;
+    nombre: string;
+    detalle?: string;
+}
+
+export const CATALOGO_CONDICIONES_IVA: CatalogoItem[] = [
+    { id: 1, nombre: 'Consumidor Final' },
+    { id: 2, nombre: 'Responsable Inscripto' },
+    { id: 3, nombre: 'Responsable Monotributo' },
+    { id: 4, nombre: 'IVA Sujeto Exento' },
+];
+
+export const CATALOGO_PUNTOS_VENTA: CatalogoItem[] = [
+    { id: 1, nombre: 'Sucursal Centro', detalle: 'N° 1 - Av. San Martín 123' },
+    { id: 2, nombre: 'Sucursal Mendoza Shopping', detalle: 'N° 2 - Acceso Este 3280' },
+    { id: 3, nombre: 'Ventas Online - Web', detalle: 'N° 3 - Av. España 500' },
+];
+
+export const CATALOGO_TIPOS_MONEDA: CatalogoItem[] = [
+    { id: 1, nombre: 'Pesos Argentinos ($)' },
+    { id: 2, nombre: 'Dólar Estadounidense (U$S)' },
+    { id: 3, nombre: 'Euros (€)' },
+];
+
+export const CATALOGO_CLIENTES: CatalogoItem[] = [
+    { id: 1, nombre: 'Nicolas Ameni', detalle: 'ID: 1 - CUIT 23447568519' },
+    { id: 2, nombre: 'Nicolas Contrera', detalle: 'ID: 2 - CUIT 23445675323' },
+    { id: 3, nombre: 'Luciano Cruz', detalle: 'ID: 3 - CUIT 23445445343' },
+];
+
+export const PRECIOS_REFERENCIA_ARTICULOS: Record<number, { descripcion: string; precio: number }> = {
+    1: { descripcion: 'Tablet S6 Lite', precio: 785000 },
+    2: { descripcion: 'Motorola Edge 70', precio: 647000 },
+    3: { descripcion: 'Samsung Galaxy A16', precio: 248000 },
+    4: { descripcion: 'Redragon Luce H888', precio: 82000 },
+    5: { descripcion: 'Mouse inalambrico Logitech M170', precio: 15000 },
+    6: { descripcion: 'Mouse Logitech G203', precio: 39000 },
+};
+
 export class FacturaService {
     private readonly baseUrl: string = 'http://localhost:8080/api/facturas';
 
@@ -40,7 +80,7 @@ export class FacturaService {
         return await respuesta.json();
     }
 
-    async crearFactura(factura: FacturaRequestDTO): Promise<any> {
+    async crearFactura(factura: FacturaRequestDTO): Promise<FacturaReporteDTO> {
         const respuesta = await fetch(this.baseUrl, {
             method: 'POST',
             headers: {
@@ -58,14 +98,14 @@ export class FacturaService {
         return await respuesta.json();
     }
 
-    async actualizarEstado(id: number, estado: string, observaciones?: string): Promise<any> {
+    async actualizarFactura(id: number, factura: FacturaRequestDTO): Promise<FacturaReporteDTO> {
         const respuesta = await fetch(`${this.baseUrl}/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ estado, observaciones })
+            body: JSON.stringify(factura)
         });
 
         if (!respuesta.ok) {
