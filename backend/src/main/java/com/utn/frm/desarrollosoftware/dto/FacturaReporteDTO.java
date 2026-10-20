@@ -9,6 +9,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FacturaReporteDTO {
+    private Long id;
     private Long numeroFactura;
     private Date fechaEmision;
     private String clienteDenominacion;
@@ -17,4 +18,16 @@ public class FacturaReporteDTO {
     private Double importeFinal;
     private Long cantidadItems;
 
+    // Constructor sin ID para compatibilidad con código legacy previo
+    public FacturaReporteDTO(Long numeroFactura, Date fechaEmision, String clienteDenominacion,
+                             String condicionIva, String puntoVentaDescripcion,
+                             Double importeFinal, Long cantidadItems) {
+        this.numeroFactura = numeroFactura;
+        this.fechaEmision = fechaEmision;
+        this.clienteDenominacion = clienteDenominacion;
+        this.condicionIva = condicionIva;
+        this.puntoVentaDescripcion = puntoVentaDescripcion;
+        this.importeFinal = importeFinal;
+        this.cantidadItems = cantidadItems;
+    }
 }

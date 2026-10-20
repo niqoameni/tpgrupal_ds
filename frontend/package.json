@@ -1,0 +1,12 @@
+{
+  "name": "frontend-facturacion",
+  "version": "1.0.0",
+  "description": "Frontend del Sistema de Facturación con TypeScript",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

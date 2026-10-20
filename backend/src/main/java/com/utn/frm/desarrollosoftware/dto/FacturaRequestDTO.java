@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -21,5 +21,7 @@ public class FacturaRequestDTO {
     private Long puntoVentaId;
     private Long tipoMonedaId;
     private String estado;
+    private String observaciones;
+    private String usuario; // Usuario que registra la operación (opcional)
     private List<FacturaDetalleRequestDTO> detalles = new ArrayList<>();
 }

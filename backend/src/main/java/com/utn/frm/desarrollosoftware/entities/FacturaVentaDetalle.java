@@ -3,7 +3,6 @@ package com.utn.frm.desarrollosoftware.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -66,7 +65,8 @@ public class FacturaVentaDetalle extends EntityId{
 
     public void calcularImportes() {
         double bruto = this.cantidad * this.precioUnitario;
-        double descuento = bruto * (this.porcentajeBonificacion / 100.0);
+        double pctBonif = (this.porcentajeBonificacion != null) ? this.porcentajeBonificacion : 0.0;
+        double descuento = bruto * (pctBonif / 100.0);
         this.importeNeto = bruto - descuento;
         this.importeIva = this.importeNeto * 0.21;
         this.importeSubtotal = this.importeNeto + this.importeIva;

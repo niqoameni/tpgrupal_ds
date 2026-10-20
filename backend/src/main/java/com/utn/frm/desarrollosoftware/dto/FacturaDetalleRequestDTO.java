@@ -11,7 +11,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class FacturaDetalleRequestDTO {
     private Long articuloId;
+    private Long listaPrecioArticuloId;
+    private String descripcion;
     private Double cantidad;
     private Double precioUnitario;
+    private Double porcentajeBonificacion;
     private Double porcentajeIva;
 }
