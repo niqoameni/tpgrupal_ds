@@ -284,7 +284,7 @@ public class FacturaService {
         }
         if (f.getTipoMoneda() != null) {
             dto.setTipoMonedaId(f.getTipoMoneda().getId());
-            dto.setTipoMonedaDescripcion(f.getTipoMoneda().getDescripcion());
+            dto.setTipoMonedaDescripcion(f.getTipoMoneda().getDenominacion());
         }
         dto.setObservaciones(f.getObservaciones());
         dto.setEstado(f.getEstado());
@@ -292,4 +292,4 @@ public class FacturaService {
 
         return dto;
     }
-}
+}
