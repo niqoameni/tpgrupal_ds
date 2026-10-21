@@ -61,6 +61,25 @@ public class FacturaService {
         return resultados;
     }
 
+    public Long obtenerSiguienteNumero() {
+        Long maxNumero = facturaRepository.obtenerMaxNumero();
+        Long maxId = facturaRepository.obtenerMaxId();
+        long max = Math.max(maxNumero != null ? maxNumero : 0L, maxId != null ? maxId : 0L);
+        if (max <= 0) {
+            return 1001L;
+        }
+        return max + 1;
+    }
+
+    @Transactional(readOnly = true)
+    public FacturaReporteDTO obtenerPorId(Long id) {
+        log.info("Buscando factura por ID: {}", id);
+        FacturaVenta factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Factura no encontrada con ID: " + id));
+
+        return mapearAReporteDTO(factura);
+    }
+
     @Transactional
     public FacturaReporteDTO crear(FacturaRequestDTO request) {
         log.info("Iniciando creación de factura...");
@@ -81,7 +100,7 @@ public class FacturaService {
 
         Long numero = request.getNumero();
         if (numero == null || numero <= 0) {
-            numero = facturaRepository.obtenerSiguienteNumero(puntoVenta.getId());
+            numero = obtenerSiguienteNumero();
         }
 
         FacturaVenta factura = new FacturaVenta(usuario, cliente, condicionIva, tipoMoneda, puntoVenta);
@@ -115,6 +134,30 @@ public class FacturaService {
             throw new IllegalStateException("No se puede editar una factura dada de baja.");
         }
 
+        if (request.getClienteId() != null) {
+            Cliente cliente = clienteRepository.findById(request.getClienteId())
+                    .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + request.getClienteId()));
+            factura.setCliente(cliente);
+        }
+
+        if (request.getCondicionIvaId() != null) {
+            CondicionIva condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
+            factura.setCondicionIva(condicionIva);
+        }
+
+        if (request.getPuntoVentaId() != null) {
+            PuntoVenta puntoVenta = puntoVentaRepository.findById(request.getPuntoVentaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Punto de Venta no encontrado con ID: " + request.getPuntoVentaId()));
+            factura.setPuntoVenta(puntoVenta);
+        }
+
+        if (request.getTipoMonedaId() != null) {
+            TipoMoneda tipoMoneda = tipoMonedaRepository.findById(request.getTipoMonedaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Tipo de Moneda no encontrado con ID: " + request.getTipoMonedaId()));
+            factura.setTipoMoneda(tipoMoneda);
+        }
+
         if (request.getEstado() != null && !request.getEstado().trim().isEmpty()) {
             factura.setEstado(request.getEstado());
         }
@@ -122,7 +165,22 @@ public class FacturaService {
             factura.setObservaciones(request.getObservaciones());
         }
 
+        Usuario usuario = obtenerUsuarioParaAuditoria(request.getUsuario());
+        factura.setUsuarioModificacion(usuario);
+        factura.setFechaModificacion(new Date());
+
+        if (request.getDetalles() != null) {
+            factura.getDetalles().clear();
+            for (FacturaDetalleRequestDTO detDto : request.getDetalles()) {
+                FacturaVentaDetalle detalle = crearDetalleDesdeDto(detDto, factura);
+                factura.addDetalle(detalle);
+            }
+        }
+        factura.calcularTotal();
+
         FacturaVenta guardada = facturaRepository.save(factura);
+        log.info("Factura ID {} actualizada con éxito en BD. Nuevo total: {}", guardada.getId(), guardada.getImporteTotal());
+
         return mapearAReporteDTO(guardada);
     }
 
@@ -184,7 +242,26 @@ public class FacturaService {
     }
 
     private FacturaReporteDTO mapearAReporteDTO(FacturaVenta f) {
-        return new FacturaReporteDTO(
+        List<FacturaDetalleRequestDTO> detallesDto = new ArrayList<>();
+        if (f.getDetalles() != null) {
+            for (FacturaVentaDetalle det : f.getDetalles()) {
+                FacturaDetalleRequestDTO dDto = new FacturaDetalleRequestDTO();
+                if (det.getListaPrecioArticulo() != null) {
+                    dDto.setListaPrecioArticuloId(det.getListaPrecioArticulo().getId());
+                    if (det.getListaPrecioArticulo().getArticulo() != null) {
+                        dDto.setArticuloId(det.getListaPrecioArticulo().getArticulo().getId());
+                    }
+                }
+                dDto.setDescripcion(det.getDescripcion());
+                dDto.setCantidad(det.getCantidad());
+                dDto.setPrecioUnitario(det.getPrecioUnitario());
+                dDto.setPorcentajeBonificacion(det.getPorcentajeBonificacion());
+                dDto.setPorcentajeIva(det.getImporteIva());
+                detallesDto.add(dDto);
+            }
+        }
+
+        FacturaReporteDTO dto = new FacturaReporteDTO(
                 f.getId(),
                 f.getNumero(),
                 f.getFechaEmision(),
@@ -192,7 +269,27 @@ public class FacturaService {
                 f.getCondicionIva() != null ? f.getCondicionIva().getDenominacion() : "-",
                 f.getPuntoVenta() != null ? f.getPuntoVenta().getDescripcion() : "-",
                 f.getImporteTotal(),
-                (long) (f.getDetalles() != null ? f.getDetalles().size() : 0)
+                (long) detallesDto.size()
         );
+
+        if (f.getCliente() != null) {
+            dto.setClienteId(f.getCliente().getId());
+            dto.setClienteCuit(f.getCliente().getCuitCuil());
+        }
+        if (f.getCondicionIva() != null) {
+            dto.setCondicionIvaId(f.getCondicionIva().getId());
+        }
+        if (f.getPuntoVenta() != null) {
+            dto.setPuntoVentaId(f.getPuntoVenta().getId());
+        }
+        if (f.getTipoMoneda() != null) {
+            dto.setTipoMonedaId(f.getTipoMoneda().getId());
+            dto.setTipoMonedaDescripcion(f.getTipoMoneda().getDescripcion());
+        }
+        dto.setObservaciones(f.getObservaciones());
+        dto.setEstado(f.getEstado());
+        dto.setDetalles(detallesDto);
+
+        return dto;
     }
-}
+}

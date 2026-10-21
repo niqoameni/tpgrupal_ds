@@ -80,6 +80,33 @@ export class FacturaService {
         return await respuesta.json();
     }
 
+    async obtenerFacturaPorId(id: number): Promise<FacturaReporteDTO> {
+        const respuesta = await fetch(`${this.baseUrl}/${id}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!respuesta.ok) {
+            throw new Error(`Error ${respuesta.status}: ${respuesta.statusText}`);
+        }
+
+        return await respuesta.json();
+    }
+
+    async obtenerSiguienteNumero(): Promise<number> {
+        const respuesta = await fetch(`${this.baseUrl}/siguiente-numero`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!respuesta.ok) {
+            throw new Error(`Error al obtener siguiente número: ${respuesta.statusText}`);
+        }
+
+        const data = await respuesta.json();
+        return data.siguienteNumero;
+    }
+
     async crearFactura(factura: FacturaRequestDTO): Promise<FacturaReporteDTO> {
         const respuesta = await fetch(this.baseUrl, {
             method: 'POST',

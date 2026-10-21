@@ -12,6 +12,7 @@ const filtroFechaHasta = document.getElementById('filtro-fecha-hasta');
 const filtroCondicionIva = document.getElementById('filtro-condicion-iva');
 // DOM Alta
 const formAlta = document.getElementById('form-alta-factura');
+const inputNumeroComprobante = document.getElementById('alta-numero-comprobante');
 const inputClienteId = document.getElementById('alta-cliente-id');
 const inputCondicionIvaId = document.getElementById('alta-condicion-iva-id');
 const inputPuntoVentaId = document.getElementById('alta-punto-venta-id');
@@ -49,8 +50,12 @@ const btnEditAgregarDetalle = document.getElementById('btn-edit-agregar-detalle'
 const tablaEditDetallesBody = document.getElementById('tabla-edit-detalles-body');
 document.addEventListener('DOMContentLoaded', () => {
     cargarListadoFacturas();
+    actualizarSiguienteNumero();
     btnAgregarDetalle?.addEventListener('click', agregarRenglonEnMemoria);
     formAlta?.addEventListener('submit', manejarAltaFactura);
+    formAlta?.addEventListener('reset', () => {
+        setTimeout(actualizarSiguienteNumero, 50);
+    });
     formFiltros?.addEventListener('submit', manejarBusquedaFiltros);
     btnLimpiarFiltros?.addEventListener('click', limpiarFiltros);
     btnExportarPdf?.addEventListener('click', descargarReportePdf);
@@ -68,6 +73,20 @@ document.addEventListener('DOMContentLoaded', () => {
         autocompletarDescripcionArticulo(editItemArticuloId, editItemDescripcion);
     });
 });
+/**
+ * Consulta el próximo número de comprobante/ID en la BD y lo refleja en la Sección 2
+ */
+async function actualizarSiguienteNumero() {
+    if (!inputNumeroComprobante)
+        return;
+    try {
+        const siguiente = await facturaService.obtenerSiguienteNumero();
+        inputNumeroComprobante.value = siguiente.toString();
+    }
+    catch (e) {
+        console.warn('No se pudo obtener el siguiente número de factura:', e);
+    }
+}
 /**
  * Autocompleta la descripción del artículo a partir del catálogo referencial
  */
@@ -177,7 +196,11 @@ async function manejarAltaFactura(e) {
     const condicionIvaId = resolverIdCatalogo(inputCondicionIvaId.value, CATALOGO_CONDICIONES_IVA, 1);
     const puntoVentaId = resolverIdCatalogo(inputPuntoVentaId.value, CATALOGO_PUNTOS_VENTA, 1);
     const tipoMonedaId = resolverIdCatalogo(inputTipoMonedaId.value, CATALOGO_TIPOS_MONEDA, 1);
+    const numero = inputNumeroComprobante && inputNumeroComprobante.value
+        ? parseInt(inputNumeroComprobante.value, 10)
+        : undefined;
     const payload = {
+        numero: numero,
         clienteId: clienteId,
         condicionIvaId: condicionIvaId,
         puntoVentaId: puntoVentaId,
@@ -193,6 +216,7 @@ async function manejarAltaFactura(e) {
         detallesEnMemoria = [];
         renderizarTablaDetalles();
         await cargarListadoFacturas();
+        await actualizarSiguienteNumero();
     }
     catch (error) {
         console.error(error);
@@ -247,20 +271,43 @@ function renderizarTablaFacturas(facturas) {
 // ==========================================
 // 3. MODAL DE EDICIÓN CON DETALLE DE ARTÍCULOS
 // ==========================================
-function abrirModalEditar(factura) {
-    editFacturaId.value = factura.id.toString();
-    modalEditarTitulo.innerText = `Editar Factura N° ${factura.numeroFactura}`;
-    editCliente.value = factura.clienteDenominacion || '';
-    editCondicionIva.value = factura.condicionIva || '';
-    editPuntoVenta.value = factura.puntoVentaDescripcion || '';
-    if (factura.detalles && factura.detalles.length > 0) {
-        detallesEnEdicion = JSON.parse(JSON.stringify(factura.detalles));
+async function abrirModalEditar(facturaResumen) {
+    try {
+        const factura = await facturaService.obtenerFacturaPorId(facturaResumen.id);
+        editFacturaId.value = factura.id.toString();
+        modalEditarTitulo.innerText = `Editar Factura N° ${factura.numeroFactura}`;
+        editCliente.value = factura.clienteDenominacion || '';
+        editCondicionIva.value = factura.condicionIva || '';
+        editPuntoVenta.value = factura.puntoVentaDescripcion || '';
+        if (factura.detalles && factura.detalles.length > 0) {
+            detallesEnEdicion = factura.detalles.map(d => {
+                const artId = d.articuloId || d.listaPrecioArticuloId || 1;
+                const ref = PRECIOS_REFERENCIA_ARTICULOS[artId];
+                const unitario = (d.precioUnitario && d.precioUnitario > 0)
+                    ? d.precioUnitario
+                    : (ref ? ref.precio : 0);
+                const desc = d.porcentajeDescuento ?? d.porcentajeBonificacion ?? 0;
+                return {
+                    listaPrecioArticuloId: d.listaPrecioArticuloId || artId,
+                    articuloId: artId,
+                    descripcion: d.descripcion || (ref ? ref.descripcion : `Artículo #${artId}`),
+                    cantidad: d.cantidad || 1,
+                    precioUnitario: unitario,
+                    porcentajeBonificacion: desc,
+                    porcentajeDescuento: desc
+                };
+            });
+        }
+        else {
+            detallesEnEdicion = [];
+        }
+        renderizarTablaEditDetalles();
+        modalEditar.style.display = 'flex';
     }
-    else {
-        detallesEnEdicion = [];
+    catch (error) {
+        console.error(error);
+        alert(`Error al cargar los datos de la factura: ${error.message}`);
     }
-    renderizarTablaEditDetalles();
-    modalEditar.style.display = 'flex';
 }
 function cerrarModalEditar() {
     modalEditar.style.display = 'none';
@@ -382,6 +429,7 @@ async function ejecutarEliminarFactura(id, numero) {
         await facturaService.eliminarFactura(id);
         alert(`Factura N° ${numero} eliminada exitosamente.`);
         await cargarListadoFacturas(obtenerFiltrosActuales());
+        await actualizarSiguienteNumero();
     }
     catch (error) {
         console.error(error);

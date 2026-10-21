@@ -11,4 +11,11 @@ public interface FacturaRepository extends JpaRepository<FacturaVenta, Long>, Fa
 
     @Query("SELECT COALESCE(MAX(f.numero), 0) + 1 FROM FacturaVenta f WHERE (:pvId IS NULL OR f.puntoVenta.id = :pvId)")
     Long obtenerSiguienteNumero(@Param("pvId") Long puntoVentaId);
+
+    @Query("SELECT COALESCE(MAX(f.numero), 0) FROM FacturaVenta f")
+    Long obtenerMaxNumero();
+
+    @Query("SELECT COALESCE(MAX(f.id), 0) FROM FacturaVenta f")
+    Long obtenerMaxId();
 }
+

@@ -3,10 +3,17 @@ export interface FacturaReporteDTO {
     id: number;
     numeroFactura: number;
     fechaEmision: string;
+    clienteId?: number;
     clienteDenominacion: string;
     clienteCuit?: string;
+    condicionIvaId?: number;
     condicionIva: string;
+    puntoVentaId?: number;
     puntoVentaDescripcion: string;
+    tipoMonedaId?: number;
+    tipoMonedaDescripcion?: string;
+    observaciones?: string;
+    estado?: string;
     importeFinal: number;
     cantidadItems: number;
     detalles?: FacturaDetalleRequestDTO[];
@@ -26,6 +33,7 @@ export interface FacturaDetalleRequestDTO {
 
 // Salida / Alta de Factura
 export interface FacturaRequestDTO {
+    numero?: number;
     clienteId: number;
     condicionIvaId: number;
     puntoVentaId: number;
@@ -33,6 +41,7 @@ export interface FacturaRequestDTO {
     observaciones?: string;
     detalles: FacturaDetalleRequestDTO[];
 }
+
 
 // Filtrado
 export interface FacturaFiltrosDTO {

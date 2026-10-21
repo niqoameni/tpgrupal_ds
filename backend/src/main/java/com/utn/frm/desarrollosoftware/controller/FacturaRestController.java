@@ -45,6 +45,19 @@ public class FacturaRestController {
         return ResponseEntity.ok(lista);
     }
 
+    @GetMapping("/siguiente-numero")
+    public ResponseEntity<java.util.Map<String, Long>> obtenerSiguienteNumero() {
+        java.util.Map<String, Long> respuesta = new java.util.HashMap<>();
+        respuesta.put("siguienteNumero", facturaService.obtenerSiguienteNumero());
+        return ResponseEntity.ok(respuesta);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FacturaReporteDTO> obtenerFacturaPorId(@PathVariable Long id) {
+        FacturaReporteDTO factura = facturaService.obtenerPorId(id);
+        return ResponseEntity.ok(factura);
+    }
+
     @GetMapping("/pdf")
     public ResponseEntity<byte[]> descargarReportePdf(
             @RequestParam(required = false) Long numero,
