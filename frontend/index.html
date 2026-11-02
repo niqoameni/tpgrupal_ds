@@ -1,21 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Facturación - Sistema CRUD</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <header class="app-header">
-            <h1>Sistema de Facturación</h1>
-            <p>Módulo de Gestión de Facturas de Venta</p>
+            <div class="header-content">
+                <div>
+                    <h1>Sistema de Facturación</h1>
+                    <p>Módulo de Gestión de Facturas de Venta</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-nuevo-cliente-header" class="btn btn-header-action btn-lg" type="button">
+                        + Nuevo Cliente
+                    </button>
+                    <button id="btn-nuevo-articulo-header" class="btn btn-header-action btn-lg" type="button">
+                        + Nuevo Artículo
+                    </button>
+                    <button id="btn-nueva-factura-header" class="btn btn-success btn-lg" type="button">
+                        + Nueva Factura
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <!-- Form de busqueda -->
+        <!-- Búsqueda de Facturas -->
         <section class="card section-filtros">
-            <h2>1. Búsqueda y Filtros</h2>
+            <h2>Búsqueda de Facturas</h2>
             <form id="form-filtros">
                 <div class="form-grid">
                     <div class="form-group">
@@ -23,8 +40,22 @@
                         <input type="number" id="filtro-numero" placeholder="Ej: 1001">
                     </div>
                     <div class="form-group">
-                        <label for="filtro-cliente">Cliente (Nombre o CUIT):</label>
-                        <input type="text" id="filtro-cliente" placeholder="Buscar texto...">
+                        <label for="filtro-cliente">Cliente:</label>
+                        <div class="explorer-trigger-container">
+                            <input type="text" id="filtro-cliente" class="explorer-trigger-input" readonly
+                                placeholder="Clic para buscar cliente...">
+                            <button type="button" id="btn-limpiar-filtro-cliente" class="explorer-clear-btn"
+                                title="Quitar cliente seleccionado" style="display: none;">&times;</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtro-articulo">Artículo:</label>
+                        <div class="explorer-trigger-container">
+                            <input type="text" id="filtro-articulo" class="explorer-trigger-input" readonly
+                                placeholder="Clic para buscar artículo...">
+                            <button type="button" id="btn-limpiar-filtro-articulo" class="explorer-clear-btn"
+                                title="Quitar artículo seleccionado" style="display: none;">&times;</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="filtro-fecha-desde">Fecha Desde:</label>
@@ -36,13 +67,13 @@
                     </div>
                     <div class="form-group">
                         <label for="filtro-condicion-iva">Condición IVA:</label>
-                        <input type="text" id="filtro-condicion-iva" list="lista-condiciones-iva-filtro" placeholder="Todas o escribir...">
-                        <datalist id="lista-condiciones-iva-filtro">
-                            <option value="Consumidor Final"></option>
-                            <option value="Responsable Inscripto"></option>
-                            <option value="Responsable Monotributo"></option>
-                            <option value="IVA Sujeto Exento"></option>
-                        </datalist>
+                        <div class="combobox-container" id="combo-filtro-condicion-iva">
+                            <input type="text" id="filtro-condicion-iva" class="combobox-input" autocomplete="off"
+                                placeholder="Todas o escribir...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar opciones">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
                     </div>
                 </div>
                 <div class="button-group">
@@ -52,123 +83,18 @@
             </form>
         </section>
 
-        <!-- Form de alta -->
-        <section class="card section-alta">
-            <h2>2. Alta de Factura de Venta</h2>
-            <form id="form-alta-factura">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="alta-numero-comprobante">N° Comprobante: *</label>
-                        <input type="number" id="alta-numero-comprobante" class="input-readonly" readonly placeholder="Cargando N°...">
-                    </div>
-                    <div class="form-group">
-                        <label for="alta-cliente-id">Cliente: *</label>
-                        <input type="text" id="alta-cliente-id" list="lista-clientes-alta" required placeholder="Escribir o elegir cliente...">
-                        <datalist id="lista-clientes-alta">
-                            <option value="Nicolas Ameni">ID: 1 - CUIT 23447568519</option>
-                            <option value="Nicolas Contrera">ID: 2 - CUIT 23445675323</option>
-                            <option value="Luciano Cruz">ID: 3 - CUIT 23445445343</option>
-                        </datalist>
-                    </div>
-                    <div class="form-group">
-                        <label for="alta-condicion-iva-id">Condición IVA: *</label>
-                        <input type="text" id="alta-condicion-iva-id" list="lista-condiciones-iva-alta" required placeholder="Escribir o elegir condición...">
-                        <datalist id="lista-condiciones-iva-alta">
-                            <option value="Consumidor Final"></option>
-                            <option value="Responsable Inscripto"></option>
-                            <option value="Responsable Monotributo"></option>
-                            <option value="IVA Sujeto Exento"></option>
-                        </datalist>
-                    </div>
-                    <div class="form-group">
-                        <label for="alta-punto-venta-id">Punto de Venta: *</label>
-                        <input type="text" id="alta-punto-venta-id" list="lista-puntos-venta-alta" required placeholder="Escribir o elegir punto...">
-                        <datalist id="lista-puntos-venta-alta">
-                            <option value="Sucursal Centro">Punto 1 - Av. San Martín 123</option>
-                            <option value="Sucursal Mendoza Shopping">Punto 2 - Acceso Este 3280</option>
-                            <option value="Ventas Online - Web">Punto 3 - Av. España 500</option>
-                        </datalist>
-                    </div>
-                    <div class="form-group">
-                        <label for="alta-tipo-moneda-id">Tipo de Moneda: *</label>
-                        <input type="text" id="alta-tipo-moneda-id" list="lista-tipos-moneda-alta" required placeholder="Escribir o elegir moneda...">
-                        <datalist id="lista-tipos-moneda-alta">
-                            <option value="Pesos Argentinos ($)"></option>
-                            <option value="Dólar Estadounidense (U$S)"></option>
-                            <option value="Euros (€)"></option>
-                        </datalist>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="alta-observaciones">Observaciones:</label>
-                        <input type="text" id="alta-observaciones" placeholder="Detalle adicional opcional...">
-                    </div>
+        <!-- Grilla Paginada de Facturas Existentes -->
+        <section class="card section-grilla">
+            <div class="section-header-bar">
+                <h2>Comprobantes Registrados</h2>
+                <div class="button-group">
+                    <button id="btn-nueva-factura" class="btn btn-success" type="button">
+                        + Nueva Factura
+                    </button>
+                    <button id="btn-exportar-pdf" class="btn btn-outline" type="button">
+                        📄 Descargar Reporte PDF
+                    </button>
                 </div>
-
-                <fieldset class="sub-form-detalles">
-                    <legend>Agregar Renglón de Venta</legend>
-                    <div class="form-grid-items">
-                <div class="form-group">
-                    <label for="item-articulo-id">Artículo / Lista: *</label>
-                    <input type="text" id="item-articulo-id" list="lista-articulos-alta" placeholder="Escribir o elegir artículo...">
-                    <datalist id="lista-articulos-alta">
-                        <option value="1 - Tablet S6 Lite">Precio Ref: $ 785.000,00</option>
-                        <option value="2 - Motorola Edge 70">Precio Ref: $ 647.000,00</option>
-                        <option value="3 - Samsung Galaxy A16">Precio Ref: $ 248.000,00</option>
-                        <option value="4 - Redragon Luce H888">Precio Ref: $ 82.000,00</option>
-                        <option value="5 - Mouse inalambrico Logitech M170">Precio Ref: $ 15.000,00</option>
-                        <option value="6 - Mouse Logitech G203">Precio Ref: $ 39.000,00</option>
-                    </datalist>
-                </div>
-                <div class="form-group">
-                    <label for="item-descripcion">Descripción:</label>
-                    <input type="text" id="item-descripcion" placeholder="Nombre o detalle opcional">
-                </div>
-                <div class="form-group">
-                    <label for="item-cantidad">Cantidad: *</label>
-                    <input type="number" id="item-cantidad" value="1" min="1" step="any">
-                </div>
-                <div class="form-group">
-                    <label for="item-bonificacion">% Descuento:</label>
-                    <input type="number" id="item-bonificacion" value="0" min="0" max="100" step="any">
-                </div>
-                <div class="form-group form-group-btn">
-                    <button type="button" id="btn-agregar-detalle" class="btn btn-outline">+ Añadir Renglón</button>
-                </div>
-            </div>
-
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID Art. / Lista</th>
-                            <th>Descripción</th>
-                            <th>Cantidad</th>
-                            <th>% Descuento</th>
-                            <th class="text-center">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-detalles-temp-body">
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">No se agregaron renglones todavía.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-                </fieldset>
-
-                <div class="button-group submit-row">
-                    <button type="submit" class="btn btn-success btn-lg">Guardar y Emitir Factura</button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Tabla de facturas -->
-        <section class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2>3. Listado de Comprobantes Registrados</h2>
-                <button id="btn-exportar-pdf" class="btn btn-outline" type="button">
-                    📄 Descargar Reporte PDF
-                </button>
             </div>
 
             <div class="table-container">
@@ -192,96 +118,437 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Barra de Paginación -->
+            <div class="pagination-bar">
+                <div class="pagination-info">
+                    <span id="paginacion-texto">Mostrando 0 de 0 comprobantes</span>
+                    <div class="pagination-size">
+                        <label for="select-page-size">Filas por página:</label>
+                        <select id="select-page-size">
+                            <option value="3">3</option>
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pagination-controls" id="paginacion-controles">
+                    <button type="button" id="btn-page-first" class="btn btn-page"
+                        title="Primera página">&laquo;</button>
+                    <button type="button" id="btn-page-prev" class="btn btn-page" title="Página anterior">&lsaquo;
+                        Anterior</button>
+                    <div id="paginacion-numeros" class="pagination-numbers"></div>
+                    <button type="button" id="btn-page-next" class="btn btn-page" title="Página siguiente">Siguiente
+                        &rsaquo;</button>
+                    <button type="button" id="btn-page-last" class="btn btn-page" title="Última página">&raquo;</button>
+                </div>
+            </div>
         </section>
     </div>
 
-    <!-- Modal para editar factura con gestión completa de artículos -->
-    <div id="modal-editar-factura" class="modal-backdrop" style="display: none;">
+    <!-- Formulario Modal Unificado: Alta y Modificación de Factura de Venta -->
+    <div id="modal-factura" class="modal-backdrop" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modal-editar-titulo">Editar Factura</h3>
-                <button type="button" id="btn-cerrar-modal" class="btn-close">&times;</button>
+                <h3 id="modal-factura-titulo">Alta de Factura de Venta</h3>
+                <button type="button" id="btn-cerrar-modal" class="btn-close" title="Cerrar">&times;</button>
             </div>
-            <form id="form-editar-factura">
-                <input type="hidden" id="edit-factura-id">
+
+            <form id="form-alta-factura">
+                <input type="hidden" id="factura-id" value="">
+
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="edit-cliente">Cliente: *</label>
-                        <input type="text" id="edit-cliente" list="lista-clientes-alta" required>
+                        <label for="alta-numero-comprobante">N° Comprobante: *</label>
+                        <input type="number" id="alta-numero-comprobante" class="input-readonly" readonly
+                            placeholder="Cargando N°...">
                     </div>
+
                     <div class="form-group">
-                        <label for="edit-condicion-iva">Condición IVA: *</label>
-                        <input type="text" id="edit-condicion-iva" list="lista-condiciones-iva-alta" required>
+                        <div class="label-with-action">
+                            <label for="alta-cliente-id">Cliente: *</label>
+                            <button type="button" id="btn-nuevo-cliente-factura" class="btn-link-inline">
+                                + Nuevo Cliente
+                            </button>
+                        </div>
+                        <div class="combobox-container" id="combo-alta-cliente">
+                            <input type="text" id="alta-cliente-id" class="combobox-input" required autocomplete="off"
+                                placeholder="Escribir o elegir cliente...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar clientes">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="edit-punto-venta">Punto de Venta: *</label>
-                        <input type="text" id="edit-punto-venta" list="lista-puntos-venta-alta" required>
+                        <label for="alta-condicion-iva-id">Condición IVA: *</label>
+                        <div class="combobox-container" id="combo-alta-condicion-iva">
+                            <input type="text" id="alta-condicion-iva-id" class="combobox-input" required
+                                autocomplete="off" placeholder="Escribir o elegir condición...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar condiciones de IVA">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alta-punto-venta-id">Punto de Venta: *</label>
+                        <div class="combobox-container" id="combo-alta-punto-venta">
+                            <input type="text" id="alta-punto-venta-id" class="combobox-input" required
+                                autocomplete="off" placeholder="Escribir o elegir punto...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar puntos de venta">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alta-lista-precio-id">Precio Lista (Minorista / Mayorista): *</label>
+                        <div class="combobox-container" id="combo-alta-lista-precio">
+                            <input type="text" id="alta-lista-precio-id" class="combobox-input" required
+                                autocomplete="off" placeholder="Elegir Minorista o Mayorista...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar listas de precio">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alta-tipo-moneda-id">Tipo de Moneda: *</label>
+                        <div class="combobox-container" id="combo-alta-tipo-moneda">
+                            <input type="text" id="alta-tipo-moneda-id" class="combobox-input" required
+                                autocomplete="off" placeholder="Escribir o elegir moneda...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar monedas">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="alta-observaciones">Observaciones:</label>
+                        <input type="text" id="alta-observaciones" placeholder="Detalle adicional opcional...">
                     </div>
                 </div>
 
-                <!-- Detalle de artículos en edición -->
-                <fieldset class="sub-form-detalles" style="margin-top: 16px;">
-                    <legend>Detalle de Artículos / Renglones de la Factura</legend>
+                <fieldset class="sub-form-detalles">
+                    <legend id="legend-detalles-lista">Detalle de Artículos</legend>
                     <div class="form-grid-items">
                         <div class="form-group">
-                            <label for="edit-item-articulo-id">Añadir Artículo:</label>
-                            <input type="text" id="edit-item-articulo-id" list="lista-articulos-alta" placeholder="Elegir artículo...">
+                            <div class="label-with-action">
+                                <label for="item-articulo-id">Artículo: *</label>
+                                <button type="button" id="btn-nuevo-articulo-factura" class="btn-link-inline">
+                                    + Nuevo Artículo
+                                </button>
+                            </div>
+                            <div class="combobox-container" id="combo-item-articulo">
+                                <input type="text" id="item-articulo-id" class="combobox-input" autocomplete="off"
+                                    placeholder="Escribir o elegir artículo...">
+                                <button type="button" class="combobox-arrow" tabindex="-1"
+                                    aria-label="Desplegar artículos">▾</button>
+                                <ul class="combobox-dropdown"></ul>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="edit-item-descripcion">Descripción:</label>
-                            <input type="text" id="edit-item-descripcion" placeholder="Nombre...">
+                            <label for="item-descripcion">Descripción:</label>
+                            <input type="text" id="item-descripcion" placeholder="Nombre o detalle opcional">
                         </div>
                         <div class="form-group">
-                            <label for="edit-item-cantidad">Cantidad:</label>
-                            <input type="number" id="edit-item-cantidad" value="1" min="1" step="any">
+                            <label for="item-cantidad">Cantidad: *</label>
+                            <input type="number" id="item-cantidad" value="1" min="1" step="any">
                         </div>
                         <div class="form-group">
-                            <label for="edit-item-descuento">% Descuento:</label>
-                            <input type="number" id="edit-item-descuento" value="0" min="0" max="100" step="any">
+                            <label for="item-bonificacion">% Descuento:</label>
+                            <input type="number" id="item-bonificacion" value="0" min="0" max="99" step="any">
                         </div>
                         <div class="form-group form-group-btn">
-                            <button type="button" id="btn-edit-agregar-detalle" class="btn btn-outline">+ Añadir Ítem</button>
+                            <button type="button" id="btn-agregar-detalle" class="btn btn-outline">+ Añadir
+                                Renglón</button>
                         </div>
                     </div>
 
-                    <div class="table-container" style="max-height: 220px; overflow-y: auto; margin-top: 10px;">
+                    <div class="table-container" style="max-height: 240px; overflow-y: auto;">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Art. / ID</th>
+                                    <th>Artículo</th>
                                     <th>Descripción</th>
                                     <th>Cantidad</th>
                                     <th>Precio Unit.</th>
                                     <th>% Descuento</th>
-                                    <th>Subtotal</th>
+                                    <th>Subtotal (c/IVA 21%)</th>
                                     <th class="text-center">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-edit-detalles-body">
+                            <tbody id="tabla-detalles-temp-body">
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">Esta factura no tiene renglones.</td>
+                                    <td colspan="7" class="text-center text-muted">No se agregaron renglones todavía.
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </fieldset>
 
-                <!-- Resumen de totales calculados en la edición -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 14px 18px; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <!-- Resumen de totales calculados -->
+                <div class="resumen-totales-box">
                     <div>
-                        <span style="font-size: 0.95rem; color: var(--text-secondary);">Cantidad Total de Ítems: </span>
-                        <strong id="edit-total-items-badge" style="font-size: 1.05rem; color: var(--navy-900);">0</strong>
+                        <span class="resumen-label">Cantidad Total de Ítems: </span>
+                        <strong id="total-items-badge" class="resumen-items-valor">0</strong>
                     </div>
                     <div>
-                        <span style="font-size: 0.95rem; color: var(--text-secondary);">Importe Total: </span>
-                        <strong id="edit-total-importe-badge" style="font-size: 1.25rem; color: var(--navy-700);">$ 0,00</strong>
-                        <input type="hidden" id="edit-importe-total" value="0">
+                        <span class="resumen-label">Importe Total (IVA incl.): </span>
+                        <strong id="total-importe-badge" class="resumen-importe-valor">$ 0,00</strong>
                     </div>
                 </div>
 
                 <div class="button-group submit-row" style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary btn-lg">Guardar Cambios de Factura</button>
+                    <button type="submit" id="btn-submit-factura" class="btn btn-success btn-lg">Guardar y Emitir
+                        Factura</button>
                     <button type="button" id="btn-cancelar-modal" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Explorer de Clientes (Búsqueda por Nombre o CUIT/CUIL) -->
+    <div id="modal-explorer-clientes" class="modal-backdrop modal-backdrop-front" style="display: none;">
+        <div class="modal-card modal-card-md">
+            <div class="modal-header">
+                <h3>Explorador de Clientes</h3>
+                <button type="button" id="btn-cerrar-explorer-clientes" class="btn-close" title="Cerrar">&times;</button>
+            </div>
+
+            <form id="form-explorer-clientes">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="explorer-cliente-nombre">Nombre (Denominación):</label>
+                        <input type="text" id="explorer-cliente-nombre" autocomplete="off"
+                            placeholder="Ej: Nicolas Ameni...">
+                    </div>
+                    <div class="form-group">
+                        <label for="explorer-cliente-cuit">CUIT / CUIL:</label>
+                        <input type="text" id="explorer-cliente-cuit" autocomplete="off"
+                            placeholder="Ej: 23447568519...">
+                    </div>
+                </div>
+                <div class="button-group" style="justify-content: space-between; margin-bottom: 14px;">
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">🔍 Buscar Cliente</button>
+                        <button type="button" id="btn-limpiar-explorer-clientes" class="btn btn-secondary">Limpiar</button>
+                    </div>
+                    <button type="button" id="btn-nuevo-cliente-explorer" class="btn btn-success btn-sm">
+                        + Crear Nuevo Cliente
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre (Denominación)</th>
+                            <th>CUIT / CUIL</th>
+                            <th>Contacto / Domicilio</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-explorer-clientes-body">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Realice una búsqueda o elija un cliente de la lista.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="button-group submit-row" style="margin-top: 18px;">
+                <button type="button" id="btn-cancelar-explorer-clientes" class="btn btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Explorer de Artículos (Búsqueda por Tipo de Lista, por Artículo o por Ambos) -->
+    <div id="modal-explorer-articulos" class="modal-backdrop modal-backdrop-front" style="display: none;">
+        <div class="modal-card modal-card-md">
+            <div class="modal-header">
+                <h3>Explorador de Artículos</h3>
+                <button type="button" id="btn-cerrar-explorer-articulos" class="btn-close" title="Cerrar">&times;</button>
+            </div>
+
+            <form id="form-explorer-articulos">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="explorer-articulo-lista">Tipo de Lista:</label>
+                        <select id="explorer-articulo-lista">
+                            <option value="">Todas (Minorista y Mayorista)</option>
+                            <option value="1">Minorista</option>
+                            <option value="2">Mayorista</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="explorer-articulo-texto">Artículo (Nombre o Código):</label>
+                        <input type="text" id="explorer-articulo-texto" autocomplete="off"
+                            placeholder="Ej: Tablet S6 Lite o ART-001...">
+                    </div>
+                </div>
+                <div class="button-group" style="justify-content: space-between; margin-bottom: 14px;">
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">🔍 Buscar Artículo</button>
+                        <button type="button" id="btn-limpiar-explorer-articulos" class="btn btn-secondary">Limpiar</button>
+                    </div>
+                    <button type="button" id="btn-nuevo-articulo-explorer" class="btn btn-success btn-sm">
+                        + Crear Nuevo Artículo
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Artículo</th>
+                            <th>Tipo de Lista</th>
+                            <th>Precio Venta</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-explorer-articulos-body">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Realice una búsqueda o elija una instancia de la lista.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="button-group submit-row" style="margin-top: 18px;">
+                <button type="button" id="btn-cancelar-explorer-articulos" class="btn btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Alta de Nuevo Cliente -->
+    <div id="modal-nuevo-cliente" class="modal-backdrop modal-backdrop-top" style="display: none;">
+        <div class="modal-card modal-card-md">
+            <div class="modal-header">
+                <h3>Crear Nuevo Cliente</h3>
+                <button type="button" id="btn-cerrar-modal-cliente" class="btn-close" title="Cerrar">&times;</button>
+            </div>
+
+            <form id="form-nuevo-cliente">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cliente-denominacion">Nombre / Denominación: *</label>
+                        <input type="text" id="cliente-denominacion" required autocomplete="off"
+                            placeholder="Ej: Juan Pérez o Razón Social">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-cuit">CUIT / CUIL: *</label>
+                        <input type="text" id="cliente-cuit" required autocomplete="off"
+                            placeholder="Ej: 20445566779 (11 dígitos)">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email" autocomplete="off"
+                            placeholder="cliente@correo.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-celular">Celular:</label>
+                        <input type="text" id="cliente-celular" autocomplete="off"
+                            placeholder="Ej: 2615554433">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-telefono">Teléfono Fijo:</label>
+                        <input type="text" id="cliente-telefono" autocomplete="off"
+                            placeholder="Ej: 4450000">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-nombre-calle">Calle (Domicilio):</label>
+                        <input type="text" id="cliente-nombre-calle" autocomplete="off"
+                            placeholder="Ej: Av. San Martín">
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-numero-calle">Número de Calle:</label>
+                        <input type="text" id="cliente-numero-calle" autocomplete="off"
+                            placeholder="Ej: 1250">
+                    </div>
+                </div>
+
+                <div class="button-group submit-row" style="margin-top: 20px;">
+                    <button type="submit" id="btn-submit-cliente" class="btn btn-success btn-lg">
+                        Guardar Cliente
+                    </button>
+                    <button type="button" id="btn-cancelar-modal-cliente" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Alta de Nuevo Artículo (con creación de ListaPrecioArticulo Minorista y Mayorista) -->
+    <div id="modal-nuevo-articulo" class="modal-backdrop modal-backdrop-top" style="display: none;">
+        <div class="modal-card modal-card-md">
+            <div class="modal-header">
+                <h3>Crear Nuevo Artículo</h3>
+                <button type="button" id="btn-cerrar-modal-articulo" class="btn-close" title="Cerrar">&times;</button>
+            </div>
+
+            <form id="form-nuevo-articulo">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="articulo-codigo">Código: *</label>
+                        <input type="text" id="articulo-codigo" class="input-readonly" readonly required autocomplete="off"
+                            placeholder="Cargando código...">
+                    </div>
+                    <div class="form-group">
+                        <label for="articulo-denominacion">Nombre (Denominación): *</label>
+                        <input type="text" id="articulo-denominacion" required autocomplete="off"
+                            placeholder="Ej: Teclado Mecánico Kumara K552">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="articulo-marca-id">Marca: *</label>
+                        <div class="combobox-container" id="combo-articulo-marca">
+                            <input type="text" id="articulo-marca-id" class="combobox-input" required autocomplete="off"
+                                placeholder="Escribir o elegir marca...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar marcas">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="articulo-rubro-id">Rubro: *</label>
+                        <div class="combobox-container" id="combo-articulo-rubro">
+                            <input type="text" id="articulo-rubro-id" class="combobox-input" required autocomplete="off"
+                                placeholder="Escribir o elegir rubro...">
+                            <button type="button" class="combobox-arrow" tabindex="-1"
+                                aria-label="Desplegar rubros">▾</button>
+                            <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="articulo-precio-minorista">Precio Minorista: *</label>
+                        <input type="number" id="articulo-precio-minorista" required min="0.01" step="any"
+                            placeholder="Ej: 75000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="articulo-precio-mayorista">Precio Mayorista: *</label>
+                        <input type="number" id="articulo-precio-mayorista" required min="0.01" step="any"
+                            placeholder="Ej: 62000">
+                    </div>
+                </div>
+
+                <div class="button-group submit-row" style="margin-top: 20px;">
+                    <button type="submit" id="btn-submit-articulo" class="btn btn-success btn-lg">
+                        Guardar Artículo y Precios
+                    </button>
+                    <button type="button" id="btn-cancelar-modal-articulo" class="btn btn-secondary">
+                        Cancelar
+                    </button>
                 </div>
             </form>
         </div>
@@ -289,4 +556,5 @@
 
     <script type="module" src="dist/app.js"></script>
 </body>
+
 </html>

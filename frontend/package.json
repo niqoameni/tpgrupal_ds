@@ -1,4 +1,12 @@
 {
+  "name": "facturacion-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node server.mjs",
+    "start": "node server.mjs"
+  },
   "devDependencies": {
     "typescript": "^7.0.2"
   }

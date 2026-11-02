@@ -26,6 +26,8 @@ public class FacturaReporteDTO {
     private Long puntoVentaId;
     private Long tipoMonedaId;
     private String tipoMonedaDescripcion;
+    private Long listaPrecioId;
+    private String listaPrecioDenominacion;
     private String observaciones;
     private String estado;
     private List<FacturaDetalleRequestDTO> detalles;
@@ -57,4 +59,3 @@ public class FacturaReporteDTO {
         this.cantidadItems = cantidadItems;
     }
 }
-

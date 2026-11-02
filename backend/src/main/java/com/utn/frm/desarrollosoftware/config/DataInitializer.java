@@ -9,6 +9,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+
 @Component
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -18,6 +21,38 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
 
+    private static final Set<String> COLUMNAS_SNAKE_CASE_DUPLICADAS = Set.of(
+            "cuit_cuil",
+            "nombre_calle",
+            "numero_calle",
+            "fecha_alta",
+            "fecha_baja",
+            "fecha_modificacion",
+            "precio_venta",
+            "lista_precio_id",
+            "usuario_carga_id",
+            "usuario_baja_id",
+            "usuario_modificacion_id",
+            "codigo_afip",
+            "domicilio_comercial",
+            "fecha_emision",
+            "fecha_anulacion",
+            "importe_total",
+            "total_iva",
+            "total_neto",
+            "porcentaje_bonificacion",
+            "precio_unitario",
+            "importe_bonificacion",
+            "importe_iva",
+            "subtotal_neto",
+            "subtotal_final",
+            "condicion_iva_id",
+            "tipo_moneda_id",
+            "punto_venta_id",
+            "factura_venta_id",
+            "lista_precio_articulo_id"
+    );
+
     public DataInitializer(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
@@ -25,6 +60,8 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        relajarColumnasDuplicadasSnakeCase();
+
         // Solo inicializamos datos si no existe ningún usuario en la BD
         if (usuarioRepository.findFirst().isPresent()) {
             log.info("Base de datos ya cuenta con registros. Omitiendo DataInitializer.");
@@ -169,9 +206,9 @@ public class DataInitializer implements CommandLineRunner {
 
         factura1.addDetalle(detalle1);
         factura2.addDetalle(detalle2);
-        factura2.addDetalle(detalle3);
         factura3.addDetalle(detalle4);
         factura4.addDetalle(detalle5);
+        factura2.addDetalle(detalle3);
 
         em.persist(factura1);
         em.persist(factura2);
@@ -179,5 +216,35 @@ public class DataInitializer implements CommandLineRunner {
         em.persist(factura4);
 
         log.info("Datos semilla cargados con éxito.");
+    }
+
+    /*
+      Si existen columnas duplicadas en snake_case con restricción NOT NULL en MySQL,
+      las convierte a NULLABLE para que el uso de las columnas camelCase oficiales no falle al insertar.
+     */
+    @SuppressWarnings("unchecked")
+    private void relajarColumnasDuplicadasSnakeCase() {
+        try {
+            List<Object[]> filas = em.createNativeQuery(
+                    "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE " +
+                    "FROM INFORMATION_SCHEMA.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() AND IS_NULLABLE = 'NO'"
+            ).getResultList();
+
+            for (Object[] fila : filas) {
+                String tableName = String.valueOf(fila[0]);
+                String columnName = String.valueOf(fila[1]);
+                String columnType = String.valueOf(fila[2]);
+
+                if (COLUMNAS_SNAKE_CASE_DUPLICADAS.contains(columnName.toLowerCase())) {
+                    String sql = String.format("ALTER TABLE `%s` MODIFY COLUMN `%s` %s NULL DEFAULT NULL",
+                            tableName, columnName, columnType);
+                    log.info("Relajando columna duplicada snake_case: {}.{}", tableName, columnName);
+                    em.createNativeQuery(sql).executeUpdate();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("No fue necesario ajustar columnas snake_case: {}", e.getMessage());
+        }
     }
 }

@@ -1,20 +1,25 @@
 package com.utn.frm.desarrollosoftware.controller;
 
+import com.utn.frm.desarrollosoftware.dto.ArticuloRequestDTO;
+import com.utn.frm.desarrollosoftware.dto.ClienteRequestDTO;
 import com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO;
 import com.utn.frm.desarrollosoftware.dto.FacturaRequestDTO;
 import com.utn.frm.desarrollosoftware.service.FacturaService;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import com.utn.frm.desarrollosoftware.util.PdfItextExporter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/facturas")
@@ -28,26 +33,70 @@ public class FacturaRestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FacturaReporteDTO>> obtenerFacturas(
+    public ResponseEntity<Page<FacturaReporteDTO>> obtenerFacturas(
             @RequestParam(required = false) Long numero,
             @RequestParam(required = false) String cliente,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaDesde,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaHasta,
-            @RequestParam(required = false) Long condicionIvaId
+            @RequestParam(required = false) Long condicionIvaId,
+            @RequestParam(required = false) Long listaPrecioArticuloId,
+            @PageableDefault(page = 0, size = 5) Pageable pageable
     ) {
-        List<FacturaReporteDTO> lista = facturaService.buscarFacturas(
+        Page<FacturaReporteDTO> pagina = facturaService.buscarFacturasPaginadas(
                 numero,
                 cliente,
                 fechaDesde,
                 fechaHasta,
-                condicionIvaId
+                condicionIvaId,
+                listaPrecioArticuloId,
+                pageable
         );
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(pagina);
+    }
+
+    @GetMapping("/catalogos")
+    public ResponseEntity<Map<String, Object>> obtenerCatalogos() {
+        return ResponseEntity.ok(facturaService.obtenerCatalogos());
+    }
+
+    @GetMapping("/clientes")
+    public ResponseEntity<List<Map<String, Object>>> buscarClientes(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String cuit
+    ) {
+        return ResponseEntity.ok(facturaService.buscarClientes(nombre, cuit));
+    }
+
+    @PostMapping("/clientes")
+    public ResponseEntity<Map<String, Object>> crearCliente(@RequestBody ClienteRequestDTO request) {
+        Map<String, Object> nuevoCliente = facturaService.crearCliente(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoCliente);
+    }
+
+    @GetMapping("/articulos/siguiente-codigo")
+    public ResponseEntity<Map<String, String>> obtenerSiguienteCodigoArticulo() {
+        Map<String, String> respuesta = new HashMap<>();
+        respuesta.put("siguienteCodigo", facturaService.obtenerSiguienteCodigoArticulo());
+        return ResponseEntity.ok(respuesta);
+    }
+
+    @PostMapping("/articulos")
+    public ResponseEntity<Map<String, Object>> crearArticulo(@RequestBody ArticuloRequestDTO request) {
+        Map<String, Object> nuevoArticulo = facturaService.crearArticulo(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoArticulo);
+    }
+
+    @GetMapping("/lista-precio-articulos")
+    public ResponseEntity<List<Map<String, Object>>> obtenerArticulosPorListaPrecio(
+            @RequestParam(required = false) Long listaPrecioId,
+            @RequestParam(required = false) String articulo
+    ) {
+        return ResponseEntity.ok(facturaService.obtenerArticulosPorListaPrecio(listaPrecioId, articulo));
     }
 
     @GetMapping("/siguiente-numero")
-    public ResponseEntity<java.util.Map<String, Long>> obtenerSiguienteNumero() {
-        java.util.Map<String, Long> respuesta = new java.util.HashMap<>();
+    public ResponseEntity<Map<String, Long>> obtenerSiguienteNumero() {
+        Map<String, Long> respuesta = new HashMap<>();
         respuesta.put("siguienteNumero", facturaService.obtenerSiguienteNumero());
         return ResponseEntity.ok(respuesta);
     }
@@ -58,15 +107,35 @@ public class FacturaRestController {
         return ResponseEntity.ok(factura);
     }
 
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> descargarFacturaIndividualPdf(@PathVariable Long id) {
+        FacturaReporteDTO factura = facturaService.obtenerPorId(id);
+        byte[] pdfBytes = PdfItextExporter.exportarFacturaIndividualEnMemoria(factura);
+        String nro = String.valueOf(factura.getNumeroFactura() != null ? factura.getNumeroFactura() : id);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Factura_" + nro + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
     @GetMapping("/pdf")
     public ResponseEntity<byte[]> descargarReportePdf(
             @RequestParam(required = false) Long numero,
             @RequestParam(required = false) String cliente,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fechaDesde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fechaHasta,
-            @RequestParam(required = false) Long condicionIvaId
+            @RequestParam(required = false) Long condicionIvaId,
+            @RequestParam(required = false) Long listaPrecioArticuloId
     ) {
-        List<FacturaReporteDTO> facturas = facturaService.buscarFacturas(numero, cliente, fechaDesde, fechaHasta, condicionIvaId);
+        List<FacturaReporteDTO> facturas = facturaService.buscarFacturas(
+                numero,
+                cliente,
+                fechaDesde,
+                fechaHasta,
+                condicionIvaId,
+                listaPrecioArticuloId
+        );
         byte[] pdfBytes = PdfItextExporter.exportarEnMemoria(facturas);
 
         return ResponseEntity.ok()
