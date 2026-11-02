@@ -1,4 +1,4 @@
-================================================================================
+============================================================================
 
 ## 📊 Sistema de Gestión de Facturación de Ventas
 
@@ -6,7 +6,7 @@ Proyecto integral de facturación comercial desarrollado para la cátedra de **D
 
 El sistema permite gestionar de punta a punta el circuito de emisión, consulta, filtrado y anulación de comprobantes de venta, integrando listas de precios diferenciadas, catálogos fiscales, emisión de reportes PDF profesionales y una interfaz web moderna y responsiva.
 
-================================================================================
+============================================================================
 
 ## ✨ Características Principales
 
@@ -30,7 +30,7 @@ El sistema permite gestionar de punta a punta el circuito de emisión, consulta,
    - **Factura Individual**: emisión del comprobante en PDF con membrete institucional, datos del cliente, desglose de ítems, totales e importes en letra.
    - **Reporte Consolidado**: exportación del listado filtrado de ventas con totales acumulados.
 
-================================================================================
+============================================================================
 
 ## 🏗 Arquitectura del Sistema
 
@@ -46,7 +46,7 @@ El sistema permite gestionar de punta a punta el circuito de emisión, consulta,
 | **Estilos** | Vanilla CSS3 | Diseño responsivo con temas claros, modales y animaciones suaves |
 | **Servidor Frontend** | Node.js (`server.mjs`) | Servidor HTTP estático nativo sin dependencias pesadas |
 
-================================================================================
+============================================================================
 
 ## 🏛 Modelo de Negocio y Dominio
 
@@ -60,7 +60,7 @@ El dominio del sistema modela el circuito de ventas argentino según lineamiento
 - **`CondicionIva`**: Tipificaciones impositivas (Consumidor Final, Responsable Inscripto, Monotributo, Exento) con sus respectivos códigos AFIP.
 - **`AuditoriaApp`**: Superclase que registra `fechaAlta`, `usuarioAlta`, `fechaBaja` y `usuarioBaja` para el control de integridad y soft-delete.
 
-================================================================================
+============================================================================
 
 ## 📂 Estructura del Proyecto
 
@@ -95,7 +95,7 @@ tpgrupal_ds/
 ├── package.json                           # Scripts globales npm
 └── README.md                              # Documentación del sistema
 ```
-================================================================================
+============================================================================
 
 ## 🔌 Catálogo de Endpoints REST
 
