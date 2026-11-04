@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +42,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
 
         String jpql = "SELECT new com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO(" +
                 " f.id, f.numero, f.fechaEmision, COALESCE(c.denominacion, 'Consumidor Final'), " +
-                " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d)" +
+                " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d), " +
+                " f.cae, f.caeFechaVencimiento, f.resultadoAfip" +
                 ") " +
                 "FROM FacturaVenta f " +
                 "LEFT JOIN f.cliente c " +
@@ -49,7 +51,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 "LEFT JOIN f.puntoVenta pv " +
                 "LEFT JOIN f.detalles d " +
                 whereClause +
-                "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal " +
+                "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal, " +
+                "f.cae, f.caeFechaVencimiento, f.resultadoAfip " +
                 "ORDER BY f.fechaEmision DESC, f.numero DESC";
 
         TypedQuery<FacturaReporteDTO> query = em.createQuery(jpql, FacturaReporteDTO.class);
@@ -80,7 +83,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
 
         String jpql = "SELECT new com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO(" +
                 " f.id, f.numero, f.fechaEmision, COALESCE(c.denominacion, 'Consumidor Final'), " +
-                " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d)" +
+                " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d), " +
+                " f.cae, f.caeFechaVencimiento, f.resultadoAfip" +
                 ") " +
                 "FROM FacturaVenta f " +
                 "LEFT JOIN f.cliente c " +
@@ -88,7 +92,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 "LEFT JOIN f.puntoVenta pv " +
                 "LEFT JOIN f.detalles d " +
                 whereClause +
-                "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal " +
+                "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal, " +
+                "f.cae, f.caeFechaVencimiento, f.resultadoAfip " +
                 "ORDER BY f.fechaEmision DESC, f.numero DESC";
 
         TypedQuery<FacturaReporteDTO> query = em.createQuery(jpql, FacturaReporteDTO.class);
@@ -137,8 +142,13 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             params.put("fechaDesde", fechaDesde);
         }
         if (fechaHasta != null) {
-            where.append("AND f.fechaEmision <= :fechaHasta ");
-            params.put("fechaHasta", fechaHasta);
+            // fechaEmision incluye hora: se compara contra el inicio del día siguiente
+            // para que las facturas emitidas durante el día "hasta" también se incluyan.
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(fechaHasta);
+            cal.add(Calendar.DAY_OF_MONTH, 1);
+            where.append("AND f.fechaEmision < :fechaHasta ");
+            params.put("fechaHasta", cal.getTime());
         }
         if (condicionIvaId != null) {
             where.append("AND ci.id = :condicionIvaId ");
@@ -146,7 +156,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
         }
         if (listaPrecioArticuloId != null) {
             where.append("AND EXISTS (SELECT 1 FROM FacturaVentaDetalle dFiltro " +
-                         "WHERE dFiltro.facturaVenta = f AND dFiltro.listaPrecioArticulo.id = :listaPrecioArticuloId) ");
+                         "WHERE dFiltro.factura = f AND dFiltro.listaPrecioArticulo.id = :listaPrecioArticuloId) ");
             params.put("listaPrecioArticuloId", listaPrecioArticuloId);
         }
 

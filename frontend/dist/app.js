@@ -1194,7 +1194,8 @@ async function manejarGuardarFactura(e) {
         else {
             const res = await facturaService.crearFactura(payload);
             const numeroGenerado = res.numeroFactura ?? res.id ?? 'OK';
-            alert(`¡Factura N° ${numeroGenerado} registrada con éxito!`);
+            const infoCae = res.cae ? `\nCAE ARCA/AFIP: ${res.cae}` : '';
+            alert(`¡Factura N° ${numeroGenerado} registrada con éxito!${infoCae}`);
             cerrarModalFactura();
             await cargarListadoFacturas(0);
         }
@@ -1239,9 +1240,12 @@ function renderizarTablaFacturas(facturas) {
         const fechaFormateada = f.fechaEmision ? new Date(f.fechaEmision).toLocaleDateString('es-AR') : '-';
         const total = typeof f.importeFinal === 'number' ? f.importeFinal : 0;
         const importeFormateado = `$ ${total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const badgeCae = f.cae
+            ? `<div style="margin-top:3px;"><span class="badge-lista" title="CAE autorizado en ARCA/AFIP">CAE: ${f.cae}</span></div>`
+            : '';
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td><strong>#${f.numeroFactura}</strong></td>
+            <td><strong>#${f.numeroFactura}</strong>${badgeCae}</td>
             <td>${fechaFormateada}</td>
             <td>${f.clienteDenominacion || '-'}</td>
             <td>${f.condicionIva || '-'}</td>

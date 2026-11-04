@@ -107,6 +107,12 @@ public class FacturaRestController {
         return ResponseEntity.ok(factura);
     }
 
+    @PostMapping("/{id}/solicitar-cae")
+    public ResponseEntity<FacturaReporteDTO> solicitarCae(@PathVariable Long id) {
+        FacturaReporteDTO factura = facturaService.solicitarCaePorId(id);
+        return ResponseEntity.ok(factura);
+    }
+
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> descargarFacturaIndividualPdf(@PathVariable Long id) {
         FacturaReporteDTO factura = facturaService.obtenerPorId(id);

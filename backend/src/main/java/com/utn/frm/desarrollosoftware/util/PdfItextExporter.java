@@ -40,11 +40,11 @@ public class PdfItextExporter {
                     .setTextAlignment(TextAlignment.CENTER);
             document.add(titulo);
 
-            float[] anchos = {2f, 2.5f, 4f, 3.5f, 3.5f, 2.5f, 2f};
+            float[] anchos = {1.8f, 2.2f, 3.8f, 3f, 3f, 2.6f, 2.2f, 1.5f};
             Table table = new Table(UnitValue.createPointArray(anchos));
             table.setWidth(UnitValue.createPercentValue(100));
 
-            String[] headers = {"Nro Factura", "Fecha", "Cliente", "Condición IVA", "Pto Venta", "Total ($)", "Items"};
+            String[] headers = {"Nro Factura", "Fecha", "Cliente", "Condición IVA", "Pto Venta", "CAE (ARCA)", "Total ($)", "Items"};
             for (String h : headers) {
                 Cell headerCell = new Cell()
                         .add(new Paragraph(h).setFont(boldFont).setFontColor(ColorConstants.WHITE))
@@ -55,12 +55,14 @@ public class PdfItextExporter {
 
             for (FacturaReporteDTO dto : lista) {
                 String fecha = (dto.getFechaEmision() != null) ? DATE_FORMAT.format(dto.getFechaEmision()) : "";
+                String caeTxt = (dto.getCae() != null && !dto.getCae().isBlank()) ? dto.getCae() : "-";
 
                 table.addCell(new Cell().add(new Paragraph(String.valueOf(dto.getNumeroFactura())).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(fecha).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(dto.getClienteDenominacion() != null ? dto.getClienteDenominacion() : "").setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(dto.getCondicionIva() != null ? dto.getCondicionIva() : "").setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(dto.getPuntoVentaDescripcion() != null ? dto.getPuntoVentaDescripcion() : "").setFont(regularFont)));
+                table.addCell(new Cell().add(new Paragraph(caeTxt).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(String.format("%.2f", dto.getImporteFinal() != null ? dto.getImporteFinal() : 0.0)).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(String.valueOf(dto.getCantidadItems() != null ? dto.getCantidadItems() : 0)).setFont(regularFont)));
             }
@@ -93,7 +95,6 @@ public class PdfItextExporter {
                     .setMarginBottom(12);
             document.add(titulo);
 
-            // Tabla de datos de cabecera de la factura
             Table infoTable = new Table(UnitValue.createPercentArray(new float[]{50f, 50f}));
             infoTable.setWidth(UnitValue.createPercentValue(100));
             infoTable.setMarginBottom(16);
@@ -104,6 +105,8 @@ public class PdfItextExporter {
             String ptoVentaTxt = factura.getPuntoVentaDescripcion() != null ? factura.getPuntoVentaDescripcion() : "-";
             String monedaTxt = factura.getTipoMonedaDescripcion() != null ? factura.getTipoMonedaDescripcion() : "Pesos Argentinos";
             String listaTxt = factura.getListaPrecioDenominacion() != null ? factura.getListaPrecioDenominacion() : "Lista General Minorista";
+            String caeTxt = (factura.getCae() != null && !factura.getCae().isBlank()) ? factura.getCae() : "Sin CAE";
+            String caeVtoTxt = (factura.getCaeFechaVencimiento() != null) ? DATE_FORMAT.format(factura.getCaeFechaVencimiento()) : "-";
 
             infoTable.addCell(crearCeldaDatos("Fecha de Emisión: ", fecha, boldFont, regularFont));
             infoTable.addCell(crearCeldaDatos("Punto de Venta: ", ptoVentaTxt, boldFont, regularFont));
@@ -113,6 +116,8 @@ public class PdfItextExporter {
             infoTable.addCell(crearCeldaDatos("Lista de Precios: ", listaTxt, boldFont, regularFont));
             infoTable.addCell(crearCeldaDatos("Moneda: ", monedaTxt, boldFont, regularFont));
             infoTable.addCell(crearCeldaDatos("Estado: ", factura.getEstado() != null ? factura.getEstado() : "EMITIDA", boldFont, regularFont));
+            infoTable.addCell(crearCeldaDatos("CAE N° (ARCA/AFIP): ", caeTxt, boldFont, regularFont));
+            infoTable.addCell(crearCeldaDatos("Vencimiento CAE: ", caeVtoTxt, boldFont, regularFont));
 
             document.add(infoTable);
 

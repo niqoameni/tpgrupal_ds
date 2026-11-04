@@ -110,6 +110,10 @@ export interface FacturaReporteDTO {
     listaPrecioDenominacion?: string;
     observaciones?: string;
     estado?: string;
+    cae?: string;
+    caeFechaVencimiento?: string;
+    resultadoAfip?: string;
+    motivoRechazo?: string;
     importeFinal: number;
     cantidadItems: number;
     detalles?: FacturaDetalleRequestDTO[];

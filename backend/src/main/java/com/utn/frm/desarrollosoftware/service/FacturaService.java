@@ -1,5 +1,6 @@
 package com.utn.frm.desarrollosoftware.service;
 
+import com.utn.frm.desarrollosoftware.afip.AfipFacturacionService;
 import com.utn.frm.desarrollosoftware.dto.*;
 import com.utn.frm.desarrollosoftware.entities.*;
 import com.utn.frm.desarrollosoftware.repository.*;
@@ -32,6 +33,7 @@ public class FacturaService {
     private final RubroRepository rubroRepository;
     private final ContactoRepository contactoRepository;
     private final DomicilioRepository domicilioRepository;
+    private final AfipFacturacionService afipFacturacionService;
 
     public FacturaService(
             FacturaRepository facturaRepository,
@@ -46,7 +48,8 @@ public class FacturaService {
             MarcaRepository marcaRepository,
             RubroRepository rubroRepository,
             ContactoRepository contactoRepository,
-            DomicilioRepository domicilioRepository
+            DomicilioRepository domicilioRepository,
+            AfipFacturacionService afipFacturacionService
     ) {
         this.facturaRepository = facturaRepository;
         this.clienteRepository = clienteRepository;
@@ -61,6 +64,7 @@ public class FacturaService {
         this.rubroRepository = rubroRepository;
         this.contactoRepository = contactoRepository;
         this.domicilioRepository = domicilioRepository;
+        this.afipFacturacionService = afipFacturacionService;
     }
 
     public List<FacturaReporteDTO> buscarFacturas(
@@ -332,11 +336,9 @@ public class FacturaService {
         Articulo nuevoArticulo = new Articulo(usuario, rubro, codigo, request.getDenominacion().trim(), marca);
         Articulo articuloGuardado = articuloRepository.save(nuevoArticulo);
 
-        // Lista Minorista (FK = 1)
         ListaPrecio listaMinorista = listaPrecioRepository.findById(1L)
                 .orElseGet(() -> listaPrecioRepository.save(new ListaPrecio(usuario, "LP-01", "Lista General Minorista")));
 
-        // Lista Mayorista (FK = 2)
         ListaPrecio listaMayorista = listaPrecioRepository.findById(2L)
                 .orElseGet(() -> listaPrecioRepository.save(new ListaPrecio(usuario, "LP-02", "Lista General Mayorista")));
 
@@ -454,6 +456,16 @@ public class FacturaService {
     public FacturaReporteDTO crear(FacturaRequestDTO request) {
         log.info("Iniciando creación de factura...");
 
+        if (request.getClienteId() == null) {
+            throw new IllegalArgumentException("Debe seleccionar un cliente.");
+        }
+        if (request.getCondicionIvaId() == null) {
+            throw new IllegalArgumentException("Debe seleccionar una condición de IVA.");
+        }
+        if (request.getPuntoVentaId() == null) {
+            throw new IllegalArgumentException("Debe seleccionar un punto de venta.");
+        }
+
         Cliente cliente = clienteRepository.findById(request.getClienteId())
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + request.getClienteId()));
 
@@ -488,9 +500,25 @@ public class FacturaService {
         }
         factura.calcularTotal();
 
-        FacturaVenta guardada = facturaRepository.save(factura);
-        log.info("Factura N° {} persistida con éxito bajo ID: {}", guardada.getNumero(), guardada.getId());
+        // Solicitar CAE en ARCA / AFIP Homologación
+        afipFacturacionService.autorizarFactura(factura);
 
+        FacturaVenta guardada = facturaRepository.save(factura);
+        log.info("Factura N° {} persistida con éxito bajo ID: {} (CAE: {})",
+                guardada.getNumero(), guardada.getId(), guardada.getCae());
+
+        return mapearAReporteDTO(guardada);
+    }
+
+    @Transactional
+    public FacturaReporteDTO solicitarCaePorId(Long id) {
+        FacturaVenta factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Factura no encontrada con ID: " + id));
+        if (factura.getFechaBaja() != null) {
+            throw new IllegalStateException("No se puede solicitar CAE para una factura dada de baja.");
+        }
+        afipFacturacionService.autorizarFactura(factura);
+        FacturaVenta guardada = facturaRepository.save(factura);
         return mapearAReporteDTO(guardada);
     }
 
@@ -594,7 +622,7 @@ public class FacturaService {
             lpa = listaPrecioArticuloRepository.findByArticuloIdAndListaPrecioId(detDto.getArticuloId(), detDto.getListaPrecioId()).orElse(null);
         }
         if (lpa == null && detDto.getArticuloId() != null) {
-            lpa = listaPrecioArticuloRepository.findByArticuloId(detDto.getArticuloId()).orElse(null);
+            lpa = listaPrecioArticuloRepository.findFirstByArticuloIdOrderByListaPrecioIdAsc(detDto.getArticuloId()).orElse(null);
         }
 
         if (lpa == null) {
@@ -648,7 +676,9 @@ public class FacturaService {
                 dDto.setCantidad(det.getCantidad());
                 dDto.setPrecioUnitario(det.getPrecioUnitario());
                 dDto.setPorcentajeBonificacion(det.getPorcentajeBonificacion());
-                dDto.setPorcentajeIva(det.getImporteIva());
+                dDto.setPorcentajeIva(det.getImporteNeto() > 0
+                        ? Math.round(det.getImporteIva() / det.getImporteNeto() * 10000.0) / 100.0
+                        : 21.0);
                 detallesDto.add(dDto);
             }
         }
@@ -661,7 +691,10 @@ public class FacturaService {
                 f.getCondicionIva() != null ? f.getCondicionIva().getDenominacion() : "-",
                 f.getPuntoVenta() != null ? f.getPuntoVenta().getDescripcion() : "-",
                 f.getImporteTotal(),
-                (long) detallesDto.size()
+                (long) detallesDto.size(),
+                f.getCae(),
+                f.getCaeFechaVencimiento(),
+                f.getResultadoAfip()
         );
 
         if (f.getCliente() != null) {
@@ -682,6 +715,7 @@ public class FacturaService {
         dto.setListaPrecioDenominacion(listaPrecioFacturaDenominacion != null ? listaPrecioFacturaDenominacion : "Lista General Minorista");
         dto.setObservaciones(f.getObservaciones());
         dto.setEstado(f.getEstado());
+        dto.setMotivoRechazo(f.getMotivoRechazo());
         dto.setDetalles(detallesDto);
 
         return dto;
