@@ -9,6 +9,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -62,8 +64,13 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         relajarColumnasDuplicadasSnakeCase();
 
-        // Solo inicializamos datos si no existe ningún usuario en la BD
+        Calendar calVto = Calendar.getInstance();
+        calVto.add(Calendar.DAY_OF_MONTH, 10);
+        Date fechaVtoCae = calVto.getTime();
+
+        // Si la BD ya tenía registros previos sin CAE en las 4 facturas iniciales, les completamos el CAE de homologación
         if (usuarioRepository.findFirst().isPresent()) {
+            asegurarCaeEnFacturasIniciales(fechaVtoCae);
             log.info("Base de datos ya cuenta con registros. Omitiendo DataInitializer.");
             return;
         }
@@ -192,11 +199,11 @@ public class DataInitializer implements CommandLineRunner {
         em.persist(lmi_mouse2);
         em.persist(lma_mouse2);
 
-        // 11. Facturas de Venta Iniciales
-        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1001L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.00, null, null, null, null, "Venta inicial mostrador");
-        FacturaVenta factura2 = new FacturaVenta(nicomesa, 1002L, cliente1, responsableIns, pesos, sucursalCentro, 0.0, null, null, null, null, "Factura con descuento por cantidad");
-        FacturaVenta factura3 = new FacturaVenta(agusbanuls, 1003L, cliente3, consumidorFinal, pesos, sucursalShopping, 0.0, null, null, null, null, "Venta online");
-        FacturaVenta factura4 = new FacturaVenta(agusbanuls, 1004L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.0, null, null, null, null, "Venta accesorios");
+        // 11. Facturas de Venta Iniciales (con CAE homologación ARCA/AFIP)
+        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1001L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.00, "86441047336866", fechaVtoCae, "A", null, "Venta inicial mostrador");
+        FacturaVenta factura2 = new FacturaVenta(nicomesa, 1002L, cliente1, responsableIns, pesos, sucursalCentro, 0.0, "86441047337087", fechaVtoCae, "A", null, "Factura con descuento por cantidad");
+        FacturaVenta factura3 = new FacturaVenta(agusbanuls, 1003L, cliente3, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337118", fechaVtoCae, "A", null, "Venta online");
+        FacturaVenta factura4 = new FacturaVenta(agusbanuls, 1004L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337147", fechaVtoCae, "A", null, "Venta accesorios");
 
         FacturaVentaDetalle detalle1 = new FacturaVentaDetalle(factura1, lmi_tablet1, "Compra por menor: Informatica", 1, 0.0);
         FacturaVentaDetalle detalle2 = new FacturaVentaDetalle(factura2, lma_auriculares1, "Compra por mayor: Perifericos", 7, 0.0);
@@ -218,10 +225,25 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Datos semilla cargados con éxito.");
     }
 
-    /*
-      Si existen columnas duplicadas en snake_case con restricción NOT NULL en MySQL,
-      las convierte a NULLABLE para que el uso de las columnas camelCase oficiales no falle al insertar.
-     */
+    private void asegurarCaeEnFacturasIniciales(Date fechaVtoCae) {
+        String[][] caesIniciales = {
+                {"1001", "86441047336866"},
+                {"1002", "86441047337087"},
+                {"1003", "86441047337118"},
+                {"1004", "86441047337147"}
+        };
+        for (String[] par : caesIniciales) {
+            Long nro = Long.parseLong(par[0]);
+            String cae = par[1];
+            em.createQuery("UPDATE FacturaVenta f SET f.cae = :cae, f.caeFechaVencimiento = :vto, f.resultadoAfip = 'A' " +
+                           "WHERE f.numero = :nro AND (f.cae IS NULL OR f.cae = '')")
+                    .setParameter("cae", cae)
+                    .setParameter("vto", fechaVtoCae)
+                    .setParameter("nro", nro)
+                    .executeUpdate();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void relajarColumnasDuplicadasSnakeCase() {
         try {

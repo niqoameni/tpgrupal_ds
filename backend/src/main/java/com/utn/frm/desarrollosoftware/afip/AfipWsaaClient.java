@@ -55,7 +55,7 @@ public class AfipWsaaClient {
     public static String[] obtenerTokenYSignPfx(String pfxPath, String pfxPassword, String service) throws Exception {
         asegurarProveedorBC();
         KeyStore ks = KeyStore.getInstance("PKCS12");
-        try (FileInputStream fis = new FileInputStream(pfxPath)) {
+        try (InputStream fis = abrirRecursoOArchivo(pfxPath, "/afip/certificado.pfx")) {
             ks.load(fis, pfxPassword != null ? pfxPassword.toCharArray() : new char[0]);
         }
         Enumeration<String> aliases = ks.aliases();
@@ -165,21 +165,56 @@ public class AfipWsaaClient {
     }
 
     private static PrivateKey cargarClavePrivada(String path) throws Exception {
-        String content = Files.readString(new File(path).toPath(), StandardCharsets.UTF_8);
-        content = content
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                .replace("-----END RSA PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
-        byte[] keyBytes = Base64.getDecoder().decode(content);
-        return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+        try (InputStream is = abrirRecursoOArchivo(path, "/afip/privada_test.key")) {
+            String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            content = content
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                    .replace("-----END RSA PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", "");
+            byte[] keyBytes = Base64.getDecoder().decode(content);
+            return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+        }
     }
 
     private static X509Certificate cargarCertificado(String path) throws Exception {
-        try (FileInputStream fis = new FileInputStream(path)) {
-            return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(fis);
+        try (InputStream is = abrirRecursoOArchivo(path, "/afip/certificado_test.crt")) {
+            return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(is);
         }
+    }
+
+    /**
+     * Busca el archivo en ruta directa, en ruta relativa dentro de backend/, o en el classpath (/afip/...).
+     */
+    private static InputStream abrirRecursoOArchivo(String path, String defaultClasspathResource) throws IOException {
+        if (path != null && !path.isBlank()) {
+            String clean = path.trim();
+            if (clean.startsWith("classpath:")) {
+                String resPath = clean.substring("classpath:".length());
+                if (!resPath.startsWith("/")) {
+                    resPath = "/" + resPath;
+                }
+                InputStream cpStream = AfipWsaaClient.class.getResourceAsStream(resPath);
+                if (cpStream != null) {
+                    return cpStream;
+                }
+            } else {
+                File f1 = new File(clean);
+                if (f1.exists() && f1.isFile()) {
+                    return new FileInputStream(f1);
+                }
+                File f2 = new File("backend", clean);
+                if (f2.exists() && f2.isFile()) {
+                    return new FileInputStream(f2);
+                }
+            }
+        }
+        InputStream fallback = AfipWsaaClient.class.getResourceAsStream(defaultClasspathResource);
+        if (fallback != null) {
+            return fallback;
+        }
+        throw new FileNotFoundException("No se encontró el archivo o recurso ARCA/AFIP: " + path + " (fallback: " + defaultClasspathResource + ")");
     }
 
     private static String enviarSoap(String urlStr, String soapXml) throws Exception {
@@ -220,4 +255,3 @@ public class AfipWsaaClient {
         return null;
     }
 }
-

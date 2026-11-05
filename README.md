@@ -96,21 +96,31 @@ tpgrupal_ds/
 
 ============================================================================
 
-## 🔐 Configuración de ARCA / AFIP (Homologación)
+## 🔐 Configuración de ARCA / AFIP (Homologación) y Base de Datos
 
-En `backend/src/main/resources/application.properties` se configuran los parámetros de conexión con ARCA/AFIP:
+Las credenciales de Homologación de ARCA/AFIP y la configuración de base de datos **ya se encuentran incluidas dentro del repositorio** para que cualquier integrante del equipo pueda clonar y ejecutar el proyecto directamente sin configuraciones manuales adicionales:
+
+- **Certificados incluidos en el repositorio**:
+  - `backend/src/main/resources/afip/privada_test.key` (Clave privada RSA 2048 bits)
+  - `backend/src/main/resources/afip/certificado_test.crt` (Certificado X.509 emitido por `Computadores Test` de ARCA/AFIP para `CUIT 20446629698`)
+  - `backend/src/main/resources/afip/pedido.csr` (Solicitud CSR generada con OpenSSL)
+
+- **Configuración en `backend/src/main/resources/application.properties`**:
 
 ```properties
+spring.datasource.url=jdbc:mysql://[::1]:3306/facturacion_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=rootpassword
+
 afip.enabled=true
 afip.cuit=20446629698
-afip.key-path=${user.home}/privada_test.key
-afip.cert-path=${user.home}/certificado_test.crt
+afip.key-path=classpath:afip/privada_test.key
+afip.cert-path=classpath:afip/certificado_test.crt
 afip.punto-venta=1
 afip.cbte-tipo=11
 ```
 
-- Colocar los archivos `privada_test.key` y `certificado_test.crt` en la carpeta de usuario (`C:\Users\<TuUsuario>\`) o ajustar `afip.key-path` y `afip.cert-path` con la ruta deseada.
-- Si no se cuenta con los certificados localmente, el sistema igualmente permite registrar facturas en la base de datos local sin interrumpir el flujo.
+- Al iniciar el backend por primera vez, `DataInitializer` crea automáticamente el catálogo base y las 4 facturas iniciales (`#1001` a `#1004`) con sus respectivos CAE de homologación ya asignados.
 
 ============================================================================
 

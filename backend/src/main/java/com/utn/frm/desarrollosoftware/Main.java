@@ -6,13 +6,14 @@ import com.utn.frm.desarrollosoftware.afip.AfipWsfeClient;
 /**
  * Clase de prueba directa del flujo completo ARCA / AFIP Homologación (WSAA + WSFEv1),
  * según el Paso 3 de la Guía Técnica Integral.
+ * Utiliza las credenciales incluidas dentro del repositorio en src/main/resources/afip/.
  */
 public class Main {
 
     public static void main(String[] args) {
         try {
-            String keyPath = "C:\\Users\\Nicolás\\privada_test.key";
-            String certPath = "C:\\Users\\Nicolás\\certificado_test.crt";
+            String keyPath = "classpath:afip/privada_test.key";
+            String certPath = "classpath:afip/certificado_test.crt";
             long cuit = 20446629698L; // CUIT del certificado en Homologación
             int puntoDeVenta = 1;
             int cbteTipo = 11; // 11 = Factura C
@@ -39,4 +40,3 @@ public class Main {
         }
     }
 }
-

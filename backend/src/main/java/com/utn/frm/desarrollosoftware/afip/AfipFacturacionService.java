@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-
 @Service
 @Slf4j
 public class AfipFacturacionService {
@@ -18,10 +16,10 @@ public class AfipFacturacionService {
     @Value("${afip.cuit:20446629698}")
     private long cuitEmisor;
 
-    @Value("${afip.key-path:${user.home}/privada_test.key}")
+    @Value("${afip.key-path:classpath:afip/privada_test.key}")
     private String keyPath;
 
-    @Value("${afip.cert-path:${user.home}/certificado_test.crt}")
+    @Value("${afip.cert-path:classpath:afip/certificado_test.crt}")
     private String certPath;
 
     @Value("${afip.punto-venta:1}")
@@ -40,19 +38,9 @@ public class AfipFacturacionService {
             return null;
         }
 
-        File keyFile = new File(keyPath);
-        File certFile = new File(certPath);
-        if (!keyFile.exists() || !certFile.exists()) {
-            String msg = "No se encontraron los archivos de clave/certificado ARCA en: " + keyPath + " / " + certPath;
-            log.warn(msg);
-            factura.setResultadoAfip("R");
-            factura.setMotivoRechazo(msg);
-            return null;
-        }
-
         try {
             log.info("Solicitando Token y Sign a WSAA (CUIT emisor: {})...", cuitEmisor);
-            String[] auth = AfipWsaaClient.obtenerTokenYSign(keyFile.getAbsolutePath(), certFile.getAbsolutePath(), "wsfe");
+            String[] auth = AfipWsaaClient.obtenerTokenYSign(keyPath, certPath, "wsfe");
             String token = auth[0];
             String sign = auth[1];
 
