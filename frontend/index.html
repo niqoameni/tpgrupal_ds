@@ -37,7 +37,7 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="filtro-numero">N° Comprobante:</label>
-                        <input type="number" id="filtro-numero" placeholder="Ej: 1001">
+                        <input type="number" id="filtro-numero" placeholder="Ej: 1">
                     </div>
                     <div class="form-group">
                         <label for="filtro-cliente">Cliente:</label>
@@ -73,6 +73,15 @@
                             <button type="button" class="combobox-arrow" tabindex="-1"
                                 aria-label="Desplegar opciones">▾</button>
                             <ul class="combobox-dropdown"></ul>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtro-arca-informadas">Declaradas en ARCA:</label>
+                        <div class="checkbox-group-arca">
+                            <label class="checkbox-label-arca" for="filtro-arca-informadas">
+                                <input type="checkbox" id="filtro-arca-informadas" checked>
+                                <span>Declaradas en ARCA</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -147,7 +156,7 @@
         </section>
     </div>
 
-    <!-- Formulario Modal Unificado: Alta y Modificación de Factura de Venta -->
+    <!-- Alta y Modificación de Factura de Venta -->
     <div id="modal-factura" class="modal-backdrop" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
@@ -160,9 +169,9 @@
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="alta-numero-comprobante">N° Comprobante: *</label>
-                        <input type="number" id="alta-numero-comprobante" class="input-readonly" readonly
-                            placeholder="Cargando N°...">
+                        <label for="alta-numero-comprobante">N° Comprobante:</label>
+                        <input type="text" id="alta-numero-comprobante" class="input-readonly" readonly
+                            placeholder="Se asigna al informar a ARCA">
                     </div>
 
                     <div class="form-group">
@@ -311,12 +320,13 @@
         </div>
     </div>
 
-    <!-- Modal Explorer de Clientes (Búsqueda por Nombre o CUIT/CUIL) -->
+    <!-- Explorer de Clientes  -->
     <div id="modal-explorer-clientes" class="modal-backdrop modal-backdrop-front" style="display: none;">
         <div class="modal-card modal-card-md">
             <div class="modal-header">
                 <h3>Explorador de Clientes</h3>
-                <button type="button" id="btn-cerrar-explorer-clientes" class="btn-close" title="Cerrar">&times;</button>
+                <button type="button" id="btn-cerrar-explorer-clientes" class="btn-close"
+                    title="Cerrar">&times;</button>
             </div>
 
             <form id="form-explorer-clientes">
@@ -335,7 +345,8 @@
                 <div class="button-group" style="justify-content: space-between; margin-bottom: 14px;">
                     <div class="button-group">
                         <button type="submit" class="btn btn-primary">🔍 Buscar Cliente</button>
-                        <button type="button" id="btn-limpiar-explorer-clientes" class="btn btn-secondary">Limpiar</button>
+                        <button type="button" id="btn-limpiar-explorer-clientes"
+                            class="btn btn-secondary">Limpiar</button>
                     </div>
                     <button type="button" id="btn-nuevo-cliente-explorer" class="btn btn-success btn-sm">
                         + Crear Nuevo Cliente
@@ -355,7 +366,8 @@
                     </thead>
                     <tbody id="tabla-explorer-clientes-body">
                         <tr>
-                            <td colspan="4" class="text-center text-muted">Realice una búsqueda o elija un cliente de la lista.</td>
+                            <td colspan="4" class="text-center text-muted">Realice una búsqueda o elija un cliente de la
+                                lista.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -367,12 +379,13 @@
         </div>
     </div>
 
-    <!-- Modal Explorer de Artículos (Búsqueda por Tipo de Lista, por Artículo o por Ambos) -->
+    <!-- Explorer de Artículos -->
     <div id="modal-explorer-articulos" class="modal-backdrop modal-backdrop-front" style="display: none;">
         <div class="modal-card modal-card-md">
             <div class="modal-header">
                 <h3>Explorador de Artículos</h3>
-                <button type="button" id="btn-cerrar-explorer-articulos" class="btn-close" title="Cerrar">&times;</button>
+                <button type="button" id="btn-cerrar-explorer-articulos" class="btn-close"
+                    title="Cerrar">&times;</button>
             </div>
 
             <form id="form-explorer-articulos">
@@ -394,7 +407,8 @@
                 <div class="button-group" style="justify-content: space-between; margin-bottom: 14px;">
                     <div class="button-group">
                         <button type="submit" class="btn btn-primary">🔍 Buscar Artículo</button>
-                        <button type="button" id="btn-limpiar-explorer-articulos" class="btn btn-secondary">Limpiar</button>
+                        <button type="button" id="btn-limpiar-explorer-articulos"
+                            class="btn btn-secondary">Limpiar</button>
                     </div>
                     <button type="button" id="btn-nuevo-articulo-explorer" class="btn btn-success btn-sm">
                         + Crear Nuevo Artículo
@@ -415,7 +429,8 @@
                     </thead>
                     <tbody id="tabla-explorer-articulos-body">
                         <tr>
-                            <td colspan="5" class="text-center text-muted">Realice una búsqueda o elija una instancia de la lista.</td>
+                            <td colspan="5" class="text-center text-muted">Realice una búsqueda o elija una instancia de
+                                la lista.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -427,7 +442,7 @@
         </div>
     </div>
 
-    <!-- Modal Alta de Nuevo Cliente -->
+    <!-- Alta de Nuevo Cliente -->
     <div id="modal-nuevo-cliente" class="modal-backdrop modal-backdrop-top" style="display: none;">
         <div class="modal-card modal-card-md">
             <div class="modal-header">
@@ -449,18 +464,15 @@
                     </div>
                     <div class="form-group">
                         <label for="cliente-email">Email:</label>
-                        <input type="email" id="cliente-email" autocomplete="off"
-                            placeholder="cliente@correo.com">
+                        <input type="email" id="cliente-email" autocomplete="off" placeholder="cliente@correo.com">
                     </div>
                     <div class="form-group">
                         <label for="cliente-celular">Celular:</label>
-                        <input type="text" id="cliente-celular" autocomplete="off"
-                            placeholder="Ej: 2615554433">
+                        <input type="text" id="cliente-celular" autocomplete="off" placeholder="Ej: 2615554433">
                     </div>
                     <div class="form-group">
                         <label for="cliente-telefono">Teléfono Fijo:</label>
-                        <input type="text" id="cliente-telefono" autocomplete="off"
-                            placeholder="Ej: 4450000">
+                        <input type="text" id="cliente-telefono" autocomplete="off" placeholder="Ej: 4450000">
                     </div>
                     <div class="form-group">
                         <label for="cliente-nombre-calle">Calle (Domicilio):</label>
@@ -469,8 +481,7 @@
                     </div>
                     <div class="form-group">
                         <label for="cliente-numero-calle">Número de Calle:</label>
-                        <input type="text" id="cliente-numero-calle" autocomplete="off"
-                            placeholder="Ej: 1250">
+                        <input type="text" id="cliente-numero-calle" autocomplete="off" placeholder="Ej: 1250">
                     </div>
                 </div>
 
@@ -486,7 +497,7 @@
         </div>
     </div>
 
-    <!-- Modal Alta de Nuevo Artículo (con creación de ListaPrecioArticulo Minorista y Mayorista) -->
+    <!-- Alta de Nuevo Artículo -->
     <div id="modal-nuevo-articulo" class="modal-backdrop modal-backdrop-top" style="display: none;">
         <div class="modal-card modal-card-md">
             <div class="modal-header">
@@ -498,8 +509,8 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="articulo-codigo">Código: *</label>
-                        <input type="text" id="articulo-codigo" class="input-readonly" readonly required autocomplete="off"
-                            placeholder="Cargando código...">
+                        <input type="text" id="articulo-codigo" class="input-readonly" readonly required
+                            autocomplete="off" placeholder="Cargando código...">
                     </div>
                     <div class="form-group">
                         <label for="articulo-denominacion">Nombre (Denominación): *</label>
@@ -554,7 +565,7 @@
         </div>
     </div>
 
-    <script type="module" src="dist/app.js"></script>
+    <script type="module" src="dist/app.js?v=20261112_4"></script>
 </body>
 
 </html>

@@ -52,7 +52,8 @@ public class DataInitializer implements CommandLineRunner {
             "tipo_moneda_id",
             "punto_venta_id",
             "factura_venta_id",
-            "lista_precio_articulo_id"
+            "lista_precio_articulo_id",
+            "numero"
     );
 
     public DataInitializer(UsuarioRepository usuarioRepository) {
@@ -199,11 +200,11 @@ public class DataInitializer implements CommandLineRunner {
         em.persist(lmi_mouse2);
         em.persist(lma_mouse2);
 
-        // 11. Facturas de Venta Iniciales (con CAE homologación ARCA/AFIP)
-        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1001L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.00, "86441047336866", fechaVtoCae, "A", null, "Venta inicial mostrador");
-        FacturaVenta factura2 = new FacturaVenta(nicomesa, 1002L, cliente1, responsableIns, pesos, sucursalCentro, 0.0, "86441047337087", fechaVtoCae, "A", null, "Factura con descuento por cantidad");
-        FacturaVenta factura3 = new FacturaVenta(agusbanuls, 1003L, cliente3, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337118", fechaVtoCae, "A", null, "Venta online");
-        FacturaVenta factura4 = new FacturaVenta(agusbanuls, 1004L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337147", fechaVtoCae, "A", null, "Venta accesorios");
+        // 11. Facturas de Venta Iniciales (con CAE homologación ARCA/AFIP, numeradas del 1 al 4)
+        FacturaVenta factura1 = new FacturaVenta(niqoameni, 1L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.00, "86441047336866", fechaVtoCae, "A", null, "Venta inicial mostrador");
+        FacturaVenta factura2 = new FacturaVenta(nicomesa, 2L, cliente1, responsableIns, pesos, sucursalCentro, 0.0, "86441047337087", fechaVtoCae, "A", null, "Factura con descuento por cantidad");
+        FacturaVenta factura3 = new FacturaVenta(agusbanuls, 3L, cliente3, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337118", fechaVtoCae, "A", null, "Venta online");
+        FacturaVenta factura4 = new FacturaVenta(agusbanuls, 4L, cliente2, consumidorFinal, pesos, sucursalShopping, 0.0, "86441047337147", fechaVtoCae, "A", null, "Venta accesorios");
 
         FacturaVentaDetalle detalle1 = new FacturaVentaDetalle(factura1, lmi_tablet1, "Compra por menor: Informatica", 1, 0.0);
         FacturaVentaDetalle detalle2 = new FacturaVentaDetalle(factura2, lma_auriculares1, "Compra por mayor: Perifericos", 7, 0.0);
@@ -227,19 +228,21 @@ public class DataInitializer implements CommandLineRunner {
 
     private void asegurarCaeEnFacturasIniciales(Date fechaVtoCae) {
         String[][] caesIniciales = {
-                {"1001", "86441047336866"},
-                {"1002", "86441047337087"},
-                {"1003", "86441047337118"},
-                {"1004", "86441047337147"}
+                {"1", "1001", "86441047336866"},
+                {"2", "1002", "86441047337087"},
+                {"3", "1003", "86441047337118"},
+                {"4", "1004", "86441047337147"}
         };
         for (String[] par : caesIniciales) {
-            Long nro = Long.parseLong(par[0]);
-            String cae = par[1];
-            em.createQuery("UPDATE FacturaVenta f SET f.cae = :cae, f.caeFechaVencimiento = :vto, f.resultadoAfip = 'A' " +
-                           "WHERE f.numero = :nro AND (f.cae IS NULL OR f.cae = '')")
+            Long nroNuevo = Long.parseLong(par[0]);
+            Long nroAntiguo = Long.parseLong(par[1]);
+            String cae = par[2];
+            em.createQuery("UPDATE FacturaVenta f SET f.numero = :nroNuevo, f.cae = :cae, f.caeFechaVencimiento = :vto, f.resultadoAfip = 'A' " +
+                           "WHERE f.numero = :nroAntiguo OR f.cae = :cae OR (f.numero = :nroNuevo AND (f.cae IS NULL OR f.cae = ''))")
+                    .setParameter("nroNuevo", nroNuevo)
+                    .setParameter("nroAntiguo", nroAntiguo)
                     .setParameter("cae", cae)
                     .setParameter("vto", fechaVtoCae)
-                    .setParameter("nro", nro)
                     .executeUpdate();
         }
     }

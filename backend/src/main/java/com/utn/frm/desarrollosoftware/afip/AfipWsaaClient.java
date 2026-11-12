@@ -191,13 +191,28 @@ public class AfipWsaaClient {
         if (path != null && !path.isBlank()) {
             String clean = path.trim();
             if (clean.startsWith("classpath:")) {
-                String resPath = clean.substring("classpath:".length());
-                if (!resPath.startsWith("/")) {
-                    resPath = "/" + resPath;
-                }
-                InputStream cpStream = AfipWsaaClient.class.getResourceAsStream(resPath);
+                String resPath = clean.substring("classpath:".length()).trim();
+                String withSlash = resPath.startsWith("/") ? resPath : "/" + resPath;
+                String withoutSlash = resPath.startsWith("/") ? resPath.substring(1) : resPath;
+
+                InputStream cpStream = AfipWsaaClient.class.getResourceAsStream(withSlash);
                 if (cpStream != null) {
                     return cpStream;
+                }
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                if (cl != null) {
+                    cpStream = cl.getResourceAsStream(withoutSlash);
+                    if (cpStream != null) {
+                        return cpStream;
+                    }
+                }
+                File fRes1 = new File("src/main/resources", withoutSlash);
+                if (fRes1.exists() && fRes1.isFile()) {
+                    return new FileInputStream(fRes1);
+                }
+                File fRes2 = new File("backend/src/main/resources", withoutSlash);
+                if (fRes2.exists() && fRes2.isFile()) {
+                    return new FileInputStream(fRes2);
                 }
             } else {
                 File f1 = new File(clean);
@@ -213,6 +228,24 @@ public class AfipWsaaClient {
         InputStream fallback = AfipWsaaClient.class.getResourceAsStream(defaultClasspathResource);
         if (fallback != null) {
             return fallback;
+        }
+        String cleanDefault = defaultClasspathResource.startsWith("/")
+                ? defaultClasspathResource.substring(1)
+                : defaultClasspathResource;
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl != null) {
+            fallback = cl.getResourceAsStream(cleanDefault);
+            if (fallback != null) {
+                return fallback;
+            }
+        }
+        File fallbackFile1 = new File("src/main/resources", cleanDefault);
+        if (fallbackFile1.exists() && fallbackFile1.isFile()) {
+            return new FileInputStream(fallbackFile1);
+        }
+        File fallbackFile2 = new File("backend/src/main/resources", cleanDefault);
+        if (fallbackFile2.exists() && fallbackFile2.isFile()) {
+            return new FileInputStream(fallbackFile2);
         }
         throw new FileNotFoundException("No se encontró el archivo o recurso ARCA/AFIP: " + path + " (fallback: " + defaultClasspathResource + ")");
     }

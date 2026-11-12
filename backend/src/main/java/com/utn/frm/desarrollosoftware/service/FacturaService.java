@@ -73,10 +73,11 @@ public class FacturaService {
             Date fechaDesde,
             Date fechaHasta,
             Long condicionIvaId,
-            Long listaPrecioArticuloId
+            Long listaPrecioArticuloId,
+            Boolean informadaArca
     ) {
-        log.info("Búsqueda de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}",
-                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId);
+        log.info("Búsqueda de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}",
+                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca);
 
         List<FacturaReporteDTO> resultados = facturaRepository.buscarFacturasFiltradas(
                 numeroFactura,
@@ -84,7 +85,8 @@ public class FacturaService {
                 fechaDesde,
                 fechaHasta,
                 condicionIvaId,
-                listaPrecioArticuloId
+                listaPrecioArticuloId,
+                informadaArca
         );
 
         log.info("Búsqueda finalizada. Se encontraron {} registros.", resultados.size());
@@ -99,10 +101,11 @@ public class FacturaService {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
+            Boolean informadaArca,
             Pageable pageable
     ) {
-        log.info("Búsqueda paginada de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, Page: {}, Size: {}",
-                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId,
+        log.info("Búsqueda paginada de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}, Page: {}, Size: {}",
+                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca,
                 pageable != null ? pageable.getPageNumber() : 0,
                 pageable != null ? pageable.getPageSize() : 0);
 
@@ -113,6 +116,7 @@ public class FacturaService {
                 fechaHasta,
                 condicionIvaId,
                 listaPrecioArticuloId,
+                informadaArca,
                 pageable
         );
 
@@ -434,11 +438,15 @@ public class FacturaService {
     }
 
     public Long obtenerSiguienteNumero() {
+        Long siguienteArca = afipFacturacionService.obtenerSiguienteNumeroComprobante();
+        if (siguienteArca != null && siguienteArca > 0) {
+            return siguienteArca;
+        }
         Long maxNumero = facturaRepository.obtenerMaxNumero();
         Long maxId = facturaRepository.obtenerMaxId();
         long max = Math.max(maxNumero != null ? maxNumero : 0L, maxId != null ? maxId : 0L);
         if (max <= 0) {
-            return 1001L;
+            return 1L;
         }
         return max + 1;
     }
@@ -481,16 +489,12 @@ public class FacturaService {
 
         Usuario usuario = obtenerUsuarioParaAuditoria(request.getUsuario());
 
-        Long numero = request.getNumero();
-        if (numero == null || numero <= 0) {
-            numero = obtenerSiguienteNumero();
-        }
-
         FacturaVenta factura = new FacturaVenta(usuario, cliente, condicionIva, tipoMoneda, puntoVenta);
-        factura.setNumero(numero);
+        // Al crear la factura aún no se informa a ARCA: queda sin número ni CAE hasta que el usuario presione "Informar a ARCA"
+        factura.setNumero(null);
         factura.setFechaEmision(request.getFechaEmision() != null ? request.getFechaEmision() : new Date());
         factura.setObservaciones(request.getObservaciones());
-        factura.setEstado(request.getEstado() != null ? request.getEstado() : "EMITIDA");
+        factura.setEstado("PENDIENTE_ARCA");
 
         if (request.getDetalles() != null && !request.getDetalles().isEmpty()) {
             for (FacturaDetalleRequestDTO detDto : request.getDetalles()) {
@@ -500,12 +504,8 @@ public class FacturaService {
         }
         factura.calcularTotal();
 
-        // Solicitar CAE en ARCA / AFIP Homologación
-        afipFacturacionService.autorizarFactura(factura);
-
         FacturaVenta guardada = facturaRepository.save(factura);
-        log.info("Factura N° {} persistida con éxito bajo ID: {} (CAE: {})",
-                guardada.getNumero(), guardada.getId(), guardada.getCae());
+        log.info("Factura creada como borrador (pendiente de informar a ARCA) bajo ID: {}", guardada.getId());
 
         return mapearAReporteDTO(guardada);
     }
@@ -515,10 +515,23 @@ public class FacturaService {
         FacturaVenta factura = facturaRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Factura no encontrada con ID: " + id));
         if (factura.getFechaBaja() != null) {
-            throw new IllegalStateException("No se puede solicitar CAE para una factura dada de baja.");
+            throw new IllegalStateException("No se puede informar a ARCA una factura dada de baja.");
         }
-        afipFacturacionService.autorizarFactura(factura);
+        if (factura.getCae() != null && !factura.getCae().trim().isEmpty()) {
+            throw new IllegalStateException("Esta factura ya fue declarada en ARCA (CAE: " + factura.getCae() + ").");
+        }
+
+        var resp = afipFacturacionService.autorizarFactura(factura);
+        if (resp != null && resp.isAprobado()) {
+            factura.setEstado("EMITIDA");
+        } else {
+            String motivo = factura.getMotivoRechazo() != null ? factura.getMotivoRechazo() : "Error desconocido en ARCA/AFIP";
+            throw new IllegalStateException("ARCA rechazó o no pudo autorizar el comprobante: " + motivo);
+        }
+
         FacturaVenta guardada = facturaRepository.save(factura);
+        log.info("Factura ID {} informada a ARCA con éxito -> N° Comprobante: {}, CAE: {}",
+                guardada.getId(), guardada.getNumero(), guardada.getCae());
         return mapearAReporteDTO(guardada);
     }
 
@@ -531,6 +544,10 @@ public class FacturaService {
 
         if (factura.getFechaBaja() != null) {
             throw new IllegalStateException("No se puede editar una factura dada de baja.");
+        }
+
+        if (factura.getCae() != null && !factura.getCae().trim().isEmpty()) {
+            throw new IllegalStateException("No se puede editar una factura que ya fue declarada en ARCA (posee CAE).");
         }
 
         if (request.getClienteId() != null) {

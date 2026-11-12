@@ -29,8 +29,31 @@ public class AfipFacturacionService {
     private int cbteTipoDefault;
 
     /**
+     * Consulta en ARCA/AFIP (WSFEv1 - FECompUltimoAutorizado) cuál es el último comprobante
+     * autorizado y devuelve el siguiente número de comprobante a emitir (ultimo + 1).
+     */
+    public Long obtenerSiguienteNumeroComprobante() {
+        if (!enabled) {
+            return null;
+        }
+        try {
+            String[] auth = AfipWsaaClient.obtenerTokenYSign(keyPath, certPath, "wsfe");
+            String token = auth[0];
+            String sign = auth[1];
+            int ultimoNro = AfipWsfeClient.obtenerUltimoComprobante(
+                    token, sign, cuitEmisor, puntoVentaDefault, cbteTipoDefault
+            );
+            return ultimoNro + 1L;
+        } catch (Exception e) {
+            log.warn("No se pudo consultar el próximo número de comprobante en ARCA/AFIP: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Solicita el CAE en el entorno de Homologación de ARCA/AFIP para la factura indicada
-     * y asigna los campos cae, caeFechaVencimiento, resultadoAfip y motivoRechazo.
+     * y asigna el número de comprobante devuelto por ARCA junto con cae, caeFechaVencimiento,
+     * resultadoAfip y motivoRechazo.
      */
     public AfipCaeResponse autorizarFactura(FacturaVenta factura) {
         if (!enabled) {
@@ -51,6 +74,9 @@ public class AfipFacturacionService {
             long nuevoNroAfip = ultimoNro + 1L;
             log.info("Último comprobante en ARCA (PtoVta={}, Tipo={}): {}. Siguiente: {}",
                     ptoVta, cbteTipo, ultimoNro, nuevoNroAfip);
+
+            // Actualizamos el número de comprobante para que coincida con el correlativo de ARCA
+            factura.setNumero(nuevoNroAfip);
 
             // En AFIP/ARCA, si el importe supera el tope de Consumidor Final sin identificar,
             // exige informar un documento (ej. DocTipo=96 DNI). Con DocTipo=96 y un DNI numérico,
@@ -91,11 +117,12 @@ public class AfipFacturacionService {
 
             factura.setResultadoAfip(resp.getResultado());
             if (resp.isAprobado()) {
+                factura.setNumero(resp.getNumeroComprobante());
                 factura.setCae(resp.getCae());
                 factura.setCaeFechaVencimiento(resp.getCaeFechaVencimiento());
                 factura.setMotivoRechazo(resp.getObservaciones());
                 log.info("Factura autorizada en ARCA/AFIP -> CAE: {}, Vto: {}, Nro AFIP: {}",
-                        resp.getCae(), resp.getCaeFechaVencimientoStr(), nuevoNroAfip);
+                        resp.getCae(), resp.getCaeFechaVencimientoStr(), resp.getNumeroComprobante());
             } else {
                 factura.setMotivoRechazo(resp.getObservaciones());
                 log.warn("Factura rechazada u observada por ARCA/AFIP -> Resultado: {}, Motivo: {}",

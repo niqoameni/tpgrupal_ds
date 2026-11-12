@@ -342,6 +342,42 @@ input::placeholder {
     color: var(--text-muted);
 }
 
+input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--teal);
+    box-shadow: none;
+    flex-shrink: 0;
+}
+
+.checkbox-group-arca {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    min-height: 38px;
+    padding: 6px 10px;
+    background-color: #ffffff;
+    border: 2px solid var(--ink);
+    box-shadow: var(--bevel-in);
+}
+
+.checkbox-label-arca {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
 /* ---------------------------------------------------------------------
    Explorer Trigger (filtros de cliente / artículo)
    --------------------------------------------------------------------- */

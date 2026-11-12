@@ -28,7 +28,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Date fechaDesde,
             Date fechaHasta,
             Long condicionIvaId,
-            Long listaPrecioArticuloId) {
+            Long listaPrecioArticuloId,
+            Boolean informadaArca) {
         Map<String, Object> params = new HashMap<>();
         String whereClause = construirFiltrosWhere(
                 numeroFactura,
@@ -37,6 +38,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 fechaHasta,
                 condicionIvaId,
                 listaPrecioArticuloId,
+                informadaArca,
                 params
         );
 
@@ -69,6 +71,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
+            Boolean informadaArca,
             Pageable pageable) {
         Map<String, Object> params = new HashMap<>();
         String whereClause = construirFiltrosWhere(
@@ -78,6 +81,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 fechaHasta,
                 condicionIvaId,
                 listaPrecioArticuloId,
+                informadaArca,
                 params
         );
 
@@ -126,6 +130,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
+            Boolean informadaArca,
             Map<String, Object> params) {
         StringBuilder where = new StringBuilder("WHERE f.fechaBaja IS NULL ");
 
@@ -158,6 +163,13 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             where.append("AND EXISTS (SELECT 1 FROM FacturaVentaDetalle dFiltro " +
                          "WHERE dFiltro.factura = f AND dFiltro.listaPrecioArticulo.id = :listaPrecioArticuloId) ");
             params.put("listaPrecioArticuloId", listaPrecioArticuloId);
+        }
+        if (informadaArca != null) {
+            if (informadaArca) {
+                where.append("AND f.cae IS NOT NULL AND TRIM(f.cae) <> '' ");
+            } else {
+                where.append("AND (f.cae IS NULL OR TRIM(f.cae) = '') ");
+            }
         }
 
         return where.toString();

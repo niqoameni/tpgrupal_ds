@@ -270,6 +270,7 @@ const btnLimpiarFiltroArticulo = document.getElementById('btn-limpiar-filtro-art
 const filtroFechaDesde = document.getElementById('filtro-fecha-desde');
 const filtroFechaHasta = document.getElementById('filtro-fecha-hasta');
 const filtroCondicionIva = document.getElementById('filtro-condicion-iva');
+const filtroArcaInformadas = document.getElementById('filtro-arca-informadas');
 // DOM Grilla y Paginación
 const tablaFacturasBody = document.getElementById('tabla-facturas-body');
 const btnExportarPdf = document.getElementById('btn-exportar-pdf');
@@ -365,6 +366,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnLimpiarFiltroArticulo?.addEventListener('click', (e) => {
         e.stopPropagation();
         limpiarSeleccionFiltroArticulo();
+    });
+    // Evento del check único de filtro ARCA (Marcado = Declaradas, Desmarcado = No declaradas)
+    filtroArcaInformadas?.addEventListener('change', () => {
+        cargarListadoFacturas(0);
     });
     // Eventos dentro del Modal Explorer de Clientes
     btnCerrarExplorerClientes?.addEventListener('click', cerrarExplorerClientes);
@@ -968,20 +973,26 @@ async function abrirFormularioAlta() {
     await cambiarListaPrecioActiva(1);
     comboAltaTipoMoneda.setSelectedById(1, false);
     modalFacturaTitulo.innerText = 'Alta de Factura de Venta';
-    btnSubmitFactura.innerText = 'Guardar y Emitir Factura';
+    btnSubmitFactura.innerText = 'Guardar Factura';
     btnSubmitFactura.classList.remove('btn-primary');
     btnSubmitFactura.classList.add('btn-success');
     if (inputNumeroComprobante) {
-        inputNumeroComprobante.value = '';
-        inputNumeroComprobante.placeholder = 'Cargando N°...';
+        inputNumeroComprobante.value = 'Se asigna al informar a ARCA';
     }
     renderizarTablaDetalles();
     modalFactura.style.display = 'flex';
-    await actualizarSiguienteNumero();
 }
 async function abrirFormularioEdicion(facturaResumen) {
+    if (facturaResumen.cae && facturaResumen.cae.trim() !== '') {
+        alert('No se puede editar una factura que ya fue declarada en ARCA (posee CAE).');
+        return;
+    }
     try {
         const factura = await facturaService.obtenerFacturaPorId(facturaResumen.id);
+        if (factura.cae && factura.cae.trim() !== '') {
+            alert('No se puede editar una factura que ya fue declarada en ARCA (posee CAE).');
+            return;
+        }
         formFactura.reset();
         inputFacturaId.value = factura.id.toString();
         lpaSeleccionadoActual = null;
@@ -990,7 +1001,9 @@ async function abrirFormularioEdicion(facturaResumen) {
         btnSubmitFactura.classList.remove('btn-success');
         btnSubmitFactura.classList.add('btn-primary');
         if (inputNumeroComprobante) {
-            inputNumeroComprobante.value = (factura.numeroFactura ?? factura.id).toString();
+            inputNumeroComprobante.value = factura.numeroFactura
+                ? `#${factura.numeroFactura}`
+                : 'Pendiente (Sin informar a ARCA)';
         }
         const listaIdFactura = factura.listaPrecioId
             ?? factura.detalles?.[0]?.listaPrecioId
@@ -1171,11 +1184,7 @@ async function manejarGuardarFactura(e) {
     }
     const idEdicion = inputFacturaId.value ? parseInt(inputFacturaId.value, 10) : null;
     const esEdicion = idEdicion !== null && !isNaN(idEdicion) && idEdicion > 0;
-    const numero = inputNumeroComprobante && inputNumeroComprobante.value
-        ? parseInt(inputNumeroComprobante.value, 10)
-        : undefined;
     const payload = {
-        numero: numero,
         clienteId: clienteId,
         condicionIvaId: condicionIvaId,
         puntoVentaId: puntoVentaId,
@@ -1186,17 +1195,19 @@ async function manejarGuardarFactura(e) {
     try {
         if (esEdicion) {
             const res = await facturaService.actualizarFactura(idEdicion, payload);
-            const nro = res.numeroFactura ?? numero ?? idEdicion;
-            alert(`¡Factura N° ${nro} actualizada con éxito!`);
+            const nro = res.numeroFactura ? `N° ${res.numeroFactura}` : `(ID ${idEdicion})`;
+            alert(`¡Factura ${nro} actualizada con éxito!`);
             cerrarModalFactura();
             await cargarListadoFacturas(paginaActual);
         }
         else {
-            const res = await facturaService.crearFactura(payload);
-            const numeroGenerado = res.numeroFactura ?? res.id ?? 'OK';
-            const infoCae = res.cae ? `\nCAE ARCA/AFIP: ${res.cae}` : '';
-            alert(`¡Factura N° ${numeroGenerado} registrada con éxito!${infoCae}`);
+            await facturaService.crearFactura(payload);
+            alert('¡Factura guardada como pendiente! Podés editarla o declararla con el botón "Informar".');
             cerrarModalFactura();
+            // Destildamos el filtro "Declaradas en ARCA" para que el usuario vea inmediatamente la factura recién creada
+            if (filtroArcaInformadas) {
+                filtroArcaInformadas.checked = false;
+            }
             await cargarListadoFacturas(0);
         }
     }
@@ -1240,12 +1251,20 @@ function renderizarTablaFacturas(facturas) {
         const fechaFormateada = f.fechaEmision ? new Date(f.fechaEmision).toLocaleDateString('es-AR') : '-';
         const total = typeof f.importeFinal === 'number' ? f.importeFinal : 0;
         const importeFormateado = `$ ${total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        const badgeCae = f.cae
+        const tieneCae = Boolean(f.cae && f.cae.trim() !== '');
+        const nroMostrar = f.numeroFactura ? `#${f.numeroFactura}` : `Pendiente`;
+        const badgeCae = tieneCae
             ? `<div style="margin-top:3px;"><span class="badge-lista" title="CAE autorizado en ARCA/AFIP">CAE: ${f.cae}</span></div>`
+            : `<div style="margin-top:3px;"><span class="text-muted" style="font-size:0.72rem;">No informada a ARCA</span></div>`;
+        const btnInformarArcaHtml = !tieneCae
+            ? `<button type="button" class="btn btn-warning btn-sm btn-informar-arca" title="Informar factura a ARCA">📤 Informar</button>`
             : '';
+        const btnEditarHtml = tieneCae
+            ? `<button type="button" class="btn btn-editar btn-sm" disabled title="No editable: factura ya declarada en ARCA (posee CAE)">🔒 Editar</button>`
+            : `<button type="button" class="btn btn-editar btn-sm">✏️ Editar</button>`;
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td><strong>#${f.numeroFactura}</strong>${badgeCae}</td>
+            <td><strong>${nroMostrar}</strong>${badgeCae}</td>
             <td>${fechaFormateada}</td>
             <td>${f.clienteDenominacion || '-'}</td>
             <td>${f.condicionIva || '-'}</td>
@@ -1255,13 +1274,20 @@ function renderizarTablaFacturas(facturas) {
             <td>
                 <div class="actions-cell">
                     <button type="button" class="btn btn-outline btn-sm btn-pdf-factura" title="Imprimir factura en PDF">📄</button>
-                    <button type="button" class="btn btn-editar btn-sm">✏️ Editar</button>
+                    ${btnInformarArcaHtml}
+                    ${btnEditarHtml}
                     <button type="button" class="btn btn-danger btn-sm btn-eliminar">🗑️ Eliminar</button>
                 </div>
             </td>
         `;
         fila.querySelector('.btn-pdf-factura')?.addEventListener('click', () => descargarPdfIndividual(f.id, f.numeroFactura));
-        fila.querySelector('.btn-editar')?.addEventListener('click', () => abrirFormularioEdicion(f));
+        if (!tieneCae) {
+            fila.querySelector('.btn-informar-arca')?.addEventListener('click', (ev) => {
+                const btn = ev.currentTarget;
+                ejecutarInformarFacturaArca(f.id, btn);
+            });
+            fila.querySelector('.btn-editar')?.addEventListener('click', () => abrirFormularioEdicion(f));
+        }
         fila.querySelector('.btn-eliminar')?.addEventListener('click', () => ejecutarEliminarFactura(f.id, f.numeroFactura));
         tablaFacturasBody.appendChild(fila);
     });
@@ -1313,12 +1339,39 @@ function irAPagina(nuevaPagina) {
     }
     cargarListadoFacturas(nuevaPagina);
 }
+async function ejecutarInformarFacturaArca(id, btn) {
+    if (!confirm('¿Desea declarar e informar esta factura a ARCA/AFIP? Una vez informada recibirá su N° de Comprobante y CAE, y ya no podrá editarse.')) {
+        return;
+    }
+    const textoOriginal = btn ? btn.innerText : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = '⏳ Informando...';
+    }
+    try {
+        const autorizada = await facturaService.informarFacturaArca(id);
+        alert(`¡Factura informada y autorizada por ARCA con éxito!\n\nN° Comprobante asignado: #${autorizada.numeroFactura}\nCAE: ${autorizada.cae}`);
+        if (filtroArcaInformadas) {
+            filtroArcaInformadas.checked = true;
+        }
+        await cargarListadoFacturas(0);
+    }
+    catch (error) {
+        console.error(error);
+        alert(`No se pudo informar la factura a ARCA: ${error.message}`);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = textoOriginal;
+        }
+    }
+}
 async function ejecutarEliminarFactura(id, numero) {
-    if (!confirm(`¿Desea dar de baja la Factura N° ${numero}?`))
+    const etiqueta = numero ? `N° ${numero}` : `(ID ${id})`;
+    if (!confirm(`¿Desea dar de baja la Factura ${etiqueta}?`))
         return;
     try {
         await facturaService.eliminarFactura(id);
-        alert(`Factura N° ${numero} eliminada exitosamente.`);
+        alert(`Factura ${etiqueta} eliminada exitosamente.`);
         await cargarListadoFacturas(paginaActual);
     }
     catch (error) {
@@ -1338,6 +1391,9 @@ function limpiarFiltros() {
     }
     if (btnLimpiarFiltroArticulo) {
         btnLimpiarFiltroArticulo.style.display = 'none';
+    }
+    if (filtroArcaInformadas) {
+        filtroArcaInformadas.checked = true;
     }
     comboFiltroCondicionIva?.clear();
     cargarListadoFacturas(0);
@@ -1360,6 +1416,9 @@ function obtenerFiltrosActuales() {
         if (idCond && idCond > 0) {
             filtros.condicionIvaId = idCond;
         }
+    }
+    if (filtroArcaInformadas) {
+        filtros.informadaArca = filtroArcaInformadas.checked;
     }
     return filtros;
 }

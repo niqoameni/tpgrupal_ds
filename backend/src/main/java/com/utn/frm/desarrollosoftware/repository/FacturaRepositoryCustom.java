@@ -14,7 +14,8 @@ public interface FacturaRepositoryCustom {
             Date fechaDesde,
             Date fechaHasta,
             Long condicionIvaId,
-            Long listaPrecioArticuloId
+            Long listaPrecioArticuloId,
+            Boolean informadaArca
     );
 
     Page<FacturaReporteDTO> buscarFacturasFiltradasPaginadas(
@@ -24,6 +25,7 @@ public interface FacturaRepositoryCustom {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
+            Boolean informadaArca,
             Pageable pageable
     );
 }

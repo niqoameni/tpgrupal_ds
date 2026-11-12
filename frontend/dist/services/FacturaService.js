@@ -158,6 +158,9 @@ export class FacturaService {
             if (filtros.listaPrecioArticuloId !== undefined && filtros.listaPrecioArticuloId !== null) {
                 url.searchParams.append('listaPrecioArticuloId', filtros.listaPrecioArticuloId.toString());
             }
+            if (filtros.informadaArca !== undefined && filtros.informadaArca !== null) {
+                url.searchParams.append('informadaArca', filtros.informadaArca.toString());
+            }
         }
         const respuesta = await fetch(url.toString(), {
             method: 'GET',
@@ -231,6 +234,31 @@ export class FacturaService {
         }
         return await respuesta.json();
     }
+    async informarFacturaArca(id) {
+        const respuesta = await fetch(`${this.baseUrl}/${id}/solicitar-cae`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        if (!respuesta.ok) {
+            let errorMsg = await respuesta.text();
+            try {
+                const parsed = JSON.parse(errorMsg);
+                if (parsed && parsed.message) {
+                    errorMsg = parsed.message;
+                }
+                else if (parsed && parsed.error) {
+                    errorMsg = parsed.error;
+                }
+            }
+            catch {
+                // usar texto plano
+            }
+            throw new Error(errorMsg || `Error ${respuesta.status}: ${respuesta.statusText}`);
+        }
+        return await respuesta.json();
+    }
     async actualizarFactura(id, factura) {
         const respuesta = await fetch(`${this.baseUrl}/${id}`, {
             method: 'PUT',
@@ -275,6 +303,9 @@ export class FacturaService {
             }
             if (filtros.listaPrecioArticuloId !== undefined && filtros.listaPrecioArticuloId !== null) {
                 url.searchParams.append('listaPrecioArticuloId', filtros.listaPrecioArticuloId.toString());
+            }
+            if (filtros.informadaArca !== undefined && filtros.informadaArca !== null) {
+                url.searchParams.append('informadaArca', filtros.informadaArca.toString());
             }
         }
         const respuesta = await fetch(url.toString(), {

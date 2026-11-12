@@ -56,8 +56,9 @@ public class PdfItextExporter {
             for (FacturaReporteDTO dto : lista) {
                 String fecha = (dto.getFechaEmision() != null) ? DATE_FORMAT.format(dto.getFechaEmision()) : "";
                 String caeTxt = (dto.getCae() != null && !dto.getCae().isBlank()) ? dto.getCae() : "-";
+                String nroTxt = (dto.getNumeroFactura() != null) ? String.valueOf(dto.getNumeroFactura()) : "Pendiente";
 
-                table.addCell(new Cell().add(new Paragraph(String.valueOf(dto.getNumeroFactura())).setFont(regularFont)));
+                table.addCell(new Cell().add(new Paragraph(nroTxt).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(fecha).setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(dto.getClienteDenominacion() != null ? dto.getClienteDenominacion() : "").setFont(regularFont)));
                 table.addCell(new Cell().add(new Paragraph(dto.getCondicionIva() != null ? dto.getCondicionIva() : "").setFont(regularFont)));
@@ -85,10 +86,12 @@ public class PdfItextExporter {
             PdfFont boldFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-            String nroComprobante = String.valueOf(factura.getNumeroFactura() != null ? factura.getNumeroFactura() : factura.getId());
+            String textoTitulo = (factura.getNumeroFactura() != null)
+                    ? "FACTURA DE VENTA N° " + factura.getNumeroFactura()
+                    : "FACTURA DE VENTA (PENDIENTE ARCA)";
             String fecha = (factura.getFechaEmision() != null) ? DATE_FORMAT.format(factura.getFechaEmision()) : "-";
 
-            Paragraph titulo = new Paragraph("FACTURA DE VENTA N° " + nroComprobante)
+            Paragraph titulo = new Paragraph(textoTitulo)
                     .setFont(boldFont)
                     .setFontSize(18)
                     .setTextAlignment(TextAlignment.CENTER)
