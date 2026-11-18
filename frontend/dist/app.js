@@ -1340,7 +1340,7 @@ function irAPagina(nuevaPagina) {
     cargarListadoFacturas(nuevaPagina);
 }
 async function ejecutarInformarFacturaArca(id, btn) {
-    if (!confirm('¿Desea declarar e informar esta factura a ARCA/AFIP? Una vez informada recibirá su N° de Comprobante y CAE, y ya no podrá editarse.')) {
+    if (!confirm('¿Desea declarar e informar esta factura a ARCA/AFIP? Una vez informada ya no podrá editarse.')) {
         return;
     }
     const textoOriginal = btn ? btn.innerText : '';

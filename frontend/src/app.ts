@@ -1523,7 +1523,7 @@ function renderizarControlesPaginacion(pageData: PageResponse<FacturaReporteDTO>
             paginacionTexto.innerText = 'Mostrando 0 de 0 comprobantes';
         } else {
             const desde = currentPage * size + 1;
-            const hasta = desde + conte📤nt.length - 1;
+            const hasta = desde + content.length - 1;
             paginacionTexto.innerText = `Mostrando ${desde} - ${hasta} de ${totalElements} comprobantes (Página ${currentPage + 1} de ${Math.max(1, totalPages)})`;
         }
     }
