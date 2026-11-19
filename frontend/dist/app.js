@@ -17,6 +17,9 @@ let listaPrecioSeleccionadaId = 1;
 let lpaSeleccionadoActual = null;
 // ID de la instancia ListaPrecioArticulo seleccionada en el filtro de búsqueda de facturas
 let filtroListaPrecioArticuloId = undefined;
+// Contexto desde el cual se abre cada Explorer ('filtro' de búsqueda principal o 'factura' en alta/edición)
+let contextoExplorerClientes = 'filtro';
+let contextoExplorerArticulos = 'filtro';
 // Estado de Paginación
 let paginaActual = 0;
 let tamanioPagina = 5;
@@ -36,13 +39,17 @@ class SearchableCombobox {
     container;
     input;
     arrowBtn;
+    explorerBtn;
+    clearBtn;
     dropdown;
     options = [];
     filteredOptions = [];
     selectedOption = null;
     highlightedIndex = -1;
+    isShowingInitialSuggestions = false;
     onSelectCallback;
-    constructor(containerId, onSelect) {
+    config;
+    constructor(containerId, onSelect, config) {
         const el = document.getElementById(containerId);
         if (!el) {
             throw new Error(`No se encontró el contenedor de combobox #${containerId}`);
@@ -50,8 +57,11 @@ class SearchableCombobox {
         this.container = el;
         this.input = el.querySelector('.combobox-input');
         this.arrowBtn = el.querySelector('.combobox-arrow');
+        this.explorerBtn = el.querySelector('.combobox-explorer-btn');
+        this.clearBtn = el.querySelector('.combobox-clear-btn');
         this.dropdown = el.querySelector('.combobox-dropdown');
         this.onSelectCallback = onSelect;
+        this.config = config;
         this.inicializarEventos();
     }
     inicializarEventos() {
@@ -65,6 +75,7 @@ class SearchableCombobox {
         });
         this.input.addEventListener('input', () => {
             this.selectedOption = null;
+            this.actualizarBotonLimpiar();
             this.abrirDesplegable(true);
         });
         this.arrowBtn?.addEventListener('mousedown', (e) => {
@@ -76,6 +87,19 @@ class SearchableCombobox {
                 this.input.focus();
                 this.abrirDesplegable(false);
             }
+        });
+        this.explorerBtn?.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const textoParcial = this.selectedOption ? '' : this.input.value.trim();
+            this.cerrarDesplegable();
+            this.config?.onOpenExplorer?.(textoParcial);
+        });
+        this.clearBtn?.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.clear();
+            this.config?.onClear?.();
         });
         this.input.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowDown') {
@@ -101,9 +125,15 @@ class SearchableCombobox {
                     if (this.highlightedIndex >= 0 && this.highlightedIndex < this.filteredOptions.length) {
                         this.seleccionarOpcion(this.filteredOptions[this.highlightedIndex]);
                     }
-                    else if (this.filteredOptions.length === 1) {
+                    else if (this.filteredOptions.length >= 1) {
                         this.seleccionarOpcion(this.filteredOptions[0]);
                     }
+                }
+            }
+            else if (e.key === 'Tab') {
+                if (this.dropdown.classList.contains('open') && !this.isShowingInitialSuggestions && this.filteredOptions.length > 0) {
+                    const idx = this.highlightedIndex >= 0 ? this.highlightedIndex : 0;
+                    this.seleccionarOpcion(this.filteredOptions[idx]);
                 }
             }
             else if (e.key === 'Escape') {
@@ -120,6 +150,12 @@ class SearchableCombobox {
             }, 150);
         });
     }
+    actualizarBotonLimpiar() {
+        if (!this.clearBtn)
+            return;
+        const tieneValor = this.input.value.trim() !== '' || this.selectedOption !== null;
+        this.clearBtn.style.display = tieneValor ? 'inline-block' : 'none';
+    }
     setOptions(options) {
         this.options = options;
         this.filteredOptions = [...options];
@@ -127,6 +163,7 @@ class SearchableCombobox {
             const actualizada = this.options.find(o => o.id === this.selectedOption.id);
             this.selectedOption = actualizada || null;
         }
+        this.actualizarBotonLimpiar();
     }
     setSelectedById(id, triggerCallback = false) {
         if (id === null || id === undefined) {
@@ -137,6 +174,7 @@ class SearchableCombobox {
         if (encontrada) {
             this.selectedOption = encontrada;
             this.input.value = encontrada.label;
+            this.actualizarBotonLimpiar();
             if (triggerCallback && this.onSelectCallback) {
                 this.onSelectCallback(encontrada);
             }
@@ -156,37 +194,59 @@ class SearchableCombobox {
         this.selectedOption = null;
         this.input.value = '';
         this.highlightedIndex = -1;
+        this.actualizarBotonLimpiar();
         this.cerrarDesplegable();
     }
     SincronizarTextoConOpcion() {
         const texto = normalizarTexto(this.input.value);
         if (!texto) {
             this.selectedOption = null;
+            this.actualizarBotonLimpiar();
             return;
         }
         if (this.selectedOption && normalizarTexto(this.selectedOption.label) === texto) {
+            this.actualizarBotonLimpiar();
             return;
         }
         const exacta = this.options.find(o => normalizarTexto(o.label) === texto);
         if (exacta) {
             this.selectedOption = exacta;
             this.input.value = exacta.label;
+            this.actualizarBotonLimpiar();
+            if (this.onSelectCallback) {
+                this.onSelectCallback(exacta);
+            }
             return;
         }
         const parcial = this.options.find(o => normalizarTexto(o.label).includes(texto) || normalizarTexto(o.subtitle || '').includes(texto));
         if (parcial) {
             this.selectedOption = parcial;
             this.input.value = parcial.label;
+            this.actualizarBotonLimpiar();
+            if (this.onSelectCallback) {
+                this.onSelectCallback(parcial);
+            }
         }
     }
     abrirDesplegable(filtrarPorInput) {
         const termino = filtrarPorInput ? normalizarTexto(this.input.value) : '';
+        const maxSugerencias = this.config?.maxInitialSuggestions;
         if (!termino) {
-            this.filteredOptions = [...this.options];
+            if (maxSugerencias !== undefined && maxSugerencias > 0) {
+                this.isShowingInitialSuggestions = true;
+                this.filteredOptions = this.options.slice(0, maxSugerencias);
+            }
+            else {
+                this.isShowingInitialSuggestions = false;
+                this.filteredOptions = [...this.options];
+            }
+            this.highlightedIndex = -1;
         }
         else {
+            this.isShowingInitialSuggestions = false;
             this.filteredOptions = this.options.filter(o => normalizarTexto(o.label).includes(termino)
                 || normalizarTexto(o.subtitle || '').includes(termino));
+            this.highlightedIndex = this.filteredOptions.length > 0 ? 0 : -1;
         }
         this.renderizarOpciones();
         this.dropdown.classList.add('open');
@@ -197,36 +257,61 @@ class SearchableCombobox {
     }
     renderizarOpciones() {
         this.dropdown.innerHTML = '';
+        if (this.config?.maxInitialSuggestions !== undefined) {
+            const headerLi = document.createElement('li');
+            headerLi.className = 'combobox-suggestion-header';
+            headerLi.innerText = this.isShowingInitialSuggestions
+                ? '💡 Sugerencia (escriba para autocompletar):'
+                : '🔎 Coincidencias al escribir:';
+            headerLi.addEventListener('mousedown', (e) => e.preventDefault());
+            this.dropdown.appendChild(headerLi);
+        }
         if (this.filteredOptions.length === 0) {
             const emptyLi = document.createElement('li');
             emptyLi.className = 'combobox-empty';
             emptyLi.innerText = 'No se encontraron coincidencias';
             this.dropdown.appendChild(emptyLi);
-            return;
         }
-        this.filteredOptions.forEach((opt, idx) => {
-            const li = document.createElement('li');
-            li.className = 'combobox-option';
-            if (this.selectedOption && this.selectedOption.id === opt.id) {
-                li.classList.add('selected');
-                this.highlightedIndex = idx;
-            }
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'combobox-option-title';
-            titleDiv.innerText = opt.label;
-            li.appendChild(titleDiv);
-            if (opt.subtitle) {
-                const subDiv = document.createElement('div');
-                subDiv.className = 'combobox-option-subtitle';
-                subDiv.innerText = opt.subtitle;
-                li.appendChild(subDiv);
-            }
-            li.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                this.seleccionarOpcion(opt);
+        else {
+            this.filteredOptions.forEach((opt, idx) => {
+                const li = document.createElement('li');
+                li.className = 'combobox-option';
+                if (this.selectedOption && this.selectedOption.id === opt.id) {
+                    li.classList.add('selected');
+                    this.highlightedIndex = idx;
+                }
+                if (idx === this.highlightedIndex) {
+                    li.classList.add('highlighted');
+                }
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'combobox-option-title';
+                titleDiv.innerText = opt.label;
+                li.appendChild(titleDiv);
+                if (opt.subtitle) {
+                    const subDiv = document.createElement('div');
+                    subDiv.className = 'combobox-option-subtitle';
+                    subDiv.innerText = opt.subtitle;
+                    li.appendChild(subDiv);
+                }
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    this.seleccionarOpcion(opt);
+                });
+                this.dropdown.appendChild(li);
             });
-            this.dropdown.appendChild(li);
-        });
+        }
+        if (this.config?.onOpenExplorer) {
+            const explorerLi = document.createElement('li');
+            explorerLi.className = 'combobox-explorer-action';
+            explorerLi.innerText = this.config.explorerLabel || '🔍 Abrir Explorador...';
+            explorerLi.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const textoParcial = this.selectedOption ? '' : this.input.value.trim();
+                this.cerrarDesplegable();
+                this.config?.onOpenExplorer?.(textoParcial);
+            });
+            this.dropdown.appendChild(explorerLi);
+        }
     }
     actualizarHighlight() {
         const items = this.dropdown.querySelectorAll('.combobox-option');
@@ -243,6 +328,7 @@ class SearchableCombobox {
     seleccionarOpcion(opt) {
         this.selectedOption = opt;
         this.input.value = opt.label;
+        this.actualizarBotonLimpiar();
         this.cerrarDesplegable();
         if (this.onSelectCallback) {
             this.onSelectCallback(opt);
@@ -356,13 +442,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnLimpiarFiltros?.addEventListener('click', limpiarFiltros);
     btnExportarPdf?.addEventListener('click', descargarReportePdf);
     // Eventos del Filtro de Cliente (Explorer)
-    filtroCliente?.addEventListener('click', abrirExplorerClientes);
+    filtroCliente?.addEventListener('click', () => abrirExplorerClientes('filtro'));
     btnLimpiarFiltroCliente?.addEventListener('click', (e) => {
         e.stopPropagation();
         limpiarSeleccionFiltroCliente();
     });
     // Eventos del Filtro de Artículo (Explorer)
-    filtroArticulo?.addEventListener('click', abrirExplorerArticulos);
+    filtroArticulo?.addEventListener('click', () => abrirExplorerArticulos('filtro'));
     btnLimpiarFiltroArticulo?.addEventListener('click', (e) => {
         e.stopPropagation();
         limpiarSeleccionFiltroArticulo();
@@ -449,12 +535,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnPageNext?.addEventListener('click', () => irAPagina(paginaActual + 1));
     btnPageLast?.addEventListener('click', () => irAPagina(totalPaginas - 1));
 });
+function obtenerIdCondicionIvaConsumidorFinal() {
+    const cond = catalogoCondicionesIva.find(c => normalizarTexto(c.nombre).includes('consumidor final'));
+    return cond ? cond.id : 1;
+}
 /**
  * Inicializa todos los desplegables buscables (SearchableCombobox)
  */
 function inicializarComboboxes() {
     comboFiltroCondicionIva = new SearchableCombobox('combo-filtro-condicion-iva');
-    comboAltaCliente = new SearchableCombobox('combo-alta-cliente');
+    comboAltaCliente = new SearchableCombobox('combo-alta-cliente', undefined, {
+        maxInitialSuggestions: 1,
+        explorerLabel: '🔍 Abrir Explorador de Clientes...',
+        onOpenExplorer: (termino) => {
+            abrirExplorerClientes('factura', termino);
+        },
+        onClear: () => {
+            if (!comboAltaCondicionIva.getSelectedId()) {
+                comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+            }
+        }
+    });
     comboAltaCondicionIva = new SearchableCombobox('combo-alta-condicion-iva');
     comboAltaPuntoVenta = new SearchableCombobox('combo-alta-punto-venta');
     // Al cambiar entre Minorista (FK=1) y Mayorista (FK=2), se recargan las instancias de ListaPrecioArticulo
@@ -462,11 +563,20 @@ function inicializarComboboxes() {
         await cambiarListaPrecioActiva(opcion.id);
     });
     comboAltaTipoMoneda = new SearchableCombobox('combo-alta-tipo-moneda');
-    // Desplegable de Artículos: muestra el nombre del artículo pero guarda el objeto ListaPrecioArticulo
+    // Desplegable de Artículos: muestra sugerencia o autocompleta al escribir y permite abrir el Explorer
     comboItemArticulo = new SearchableCombobox('combo-item-articulo', (opcion) => {
         lpaSeleccionadoActual = opcion.raw;
         if (!inputItemDesc.value.trim()) {
             inputItemDesc.value = opcion.raw.articuloDenominacion;
+        }
+    }, {
+        maxInitialSuggestions: 2,
+        explorerLabel: '🔍 Abrir Explorador de Artículos...',
+        onOpenExplorer: (termino) => {
+            abrirExplorerArticulos('factura', termino);
+        },
+        onClear: () => {
+            lpaSeleccionadoActual = null;
         }
     });
     comboArticuloMarca = new SearchableCombobox('combo-articulo-marca');
@@ -525,8 +635,12 @@ async function sincronizarCatalogosDesdeServidor() {
 // =========================================================
 // EXPLORER DE CLIENTES (BÚSQUEDA POR NOMBRE O CUIT/CUIL)
 // =========================================================
-async function abrirExplorerClientes() {
+async function abrirExplorerClientes(contexto = 'filtro', textoInicial = '') {
+    contextoExplorerClientes = contexto;
     formExplorerClientes?.reset();
+    if (textoInicial && inputExplorerNombre) {
+        inputExplorerNombre.value = textoInicial;
+    }
     modalExplorerClientes.style.display = 'flex';
     await ejecutarBusquedaExplorerClientes();
     inputExplorerNombre?.focus();
@@ -537,6 +651,7 @@ function cerrarExplorerClientes() {
 async function ejecutarBusquedaExplorerClientes() {
     const nombre = inputExplorerNombre?.value.trim() || '';
     const cuit = inputExplorerCuit?.value.trim().replace(/[^0-9]/g, '') || '';
+    const esSugerenciaInicial = !nombre && !cuit;
     let resultados = [];
     try {
         resultados = await facturaService.buscarClientes(nombre, cuit);
@@ -551,21 +666,50 @@ async function ejecutarBusquedaExplorerClientes() {
             return coincideNombre && coincideCuit;
         });
     }
-    renderizarTablaExplorerClientes(resultados);
+    renderizarTablaExplorerClientes(resultados, esSugerenciaInicial);
 }
-function renderizarTablaExplorerClientes(clientes) {
+function renderizarTablaExplorerClientes(clientes, esSugerenciaInicial = false) {
     tablaExplorerClientesBody.innerHTML = '';
-    if (!clientes || clientes.length === 0) {
-        tablaExplorerClientesBody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center text-muted">
-                    No se encontraron clientes con esos criterios.
-                </td>
-            </tr>
+    if (contextoExplorerClientes === 'factura' && esSugerenciaInicial) {
+        const trCf = document.createElement('tr');
+        trCf.innerHTML = `
+            <td><strong>Consumidor Final</strong> <span class="badge-lista">Por defecto</span></td>
+            <td>-</td>
+            <td>Venta sin cliente nominado</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-outline btn-sm btn-elegir-consumidor-final">✓ Consumidor Final</button>
+            </td>
         `;
+        trCf.querySelector('.btn-elegir-consumidor-final')?.addEventListener('click', () => {
+            comboAltaCliente.clear();
+            if (!comboAltaCondicionIva.getSelectedId()) {
+                comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+            }
+            cerrarExplorerClientes();
+        });
+        tablaExplorerClientesBody.appendChild(trCf);
+    }
+    if (!clientes || clientes.length === 0) {
+        const trEmpty = document.createElement('tr');
+        trEmpty.innerHTML = `
+            <td colspan="4" class="text-center text-muted">
+                No se encontraron clientes con esos criterios.
+            </td>
+        `;
+        tablaExplorerClientesBody.appendChild(trEmpty);
         return;
     }
-    clientes.forEach(c => {
+    if (esSugerenciaInicial) {
+        const trHint = document.createElement('tr');
+        trHint.innerHTML = `
+            <td colspan="4" class="explorer-hint-cell">
+                💡 Sugerencia inicial — empiece a escribir Nombre o CUIT arriba para autocompletar clientes.
+            </td>
+        `;
+        tablaExplorerClientesBody.appendChild(trHint);
+    }
+    const listaMostrar = esSugerenciaInicial ? clientes.slice(0, 1) : clientes;
+    listaMostrar.forEach(c => {
         const nombreMostrar = c.denominacion || c.nombre || '-';
         const cuitMostrar = c.cuitCuil || c.cuit || '-';
         const partesContacto = [];
@@ -595,6 +739,16 @@ function renderizarTablaExplorerClientes(clientes) {
     });
 }
 function seleccionarClienteDesdeExplorer(cliente) {
+    const existe = catalogoClientes.some(c => c.id === cliente.id);
+    if (!existe) {
+        catalogoClientes.push(cliente);
+        poblarOpcionesComboboxes();
+    }
+    if (contextoExplorerClientes === 'factura') {
+        comboAltaCliente.setSelectedById(cliente.id, true);
+        cerrarExplorerClientes();
+        return;
+    }
     const nombre = cliente.denominacion || cliente.nombre;
     filtroCliente.value = nombre;
     if (btnLimpiarFiltroCliente) {
@@ -613,8 +767,15 @@ function limpiarSeleccionFiltroCliente() {
 // =========================================================
 // EXPLORER DE ARTÍCULOS (FILTRAR POR TIPO DE LISTA, ARTÍCULO O AMBOS)
 // =========================================================
-async function abrirExplorerArticulos() {
+async function abrirExplorerArticulos(contexto = 'filtro', textoInicial = '') {
+    contextoExplorerArticulos = contexto;
     formExplorerArticulos?.reset();
+    if (contexto === 'factura' && selectExplorerArticuloLista) {
+        selectExplorerArticuloLista.value = String(listaPrecioSeleccionadaId);
+    }
+    if (textoInicial && inputExplorerArticuloTexto) {
+        inputExplorerArticuloTexto.value = textoInicial;
+    }
     modalExplorerArticulos.style.display = 'flex';
     await ejecutarBusquedaExplorerArticulos();
     inputExplorerArticuloTexto?.focus();
@@ -626,6 +787,7 @@ async function ejecutarBusquedaExplorerArticulos() {
     const listaVal = selectExplorerArticuloLista?.value || '';
     const listaPrecioId = listaVal ? parseInt(listaVal, 10) : undefined;
     const textoArticulo = inputExplorerArticuloTexto?.value.trim() || '';
+    const esSugerenciaInicial = !textoArticulo;
     let resultados = [];
     try {
         resultados = await facturaService.obtenerArticulosPorListaPrecio(listaPrecioId, textoArticulo);
@@ -640,9 +802,9 @@ async function ejecutarBusquedaExplorerArticulos() {
             return coincideLista && coincideTexto;
         });
     }
-    renderizarTablaExplorerArticulos(resultados);
+    renderizarTablaExplorerArticulos(resultados, esSugerenciaInicial);
 }
-function renderizarTablaExplorerArticulos(instancias) {
+function renderizarTablaExplorerArticulos(instancias, esSugerenciaInicial = false) {
     tablaExplorerArticulosBody.innerHTML = '';
     if (!instancias || instancias.length === 0) {
         tablaExplorerArticulosBody.innerHTML = `
@@ -654,7 +816,17 @@ function renderizarTablaExplorerArticulos(instancias) {
         `;
         return;
     }
-    instancias.forEach(lpa => {
+    if (esSugerenciaInicial) {
+        const trHint = document.createElement('tr');
+        trHint.innerHTML = `
+            <td colspan="5" class="explorer-hint-cell">
+                💡 Sugerencias iniciales — empiece a escribir nombre o código del artículo arriba para autocompletar.
+            </td>
+        `;
+        tablaExplorerArticulosBody.appendChild(trHint);
+    }
+    const listaMostrar = esSugerenciaInicial ? instancias.slice(0, 2) : instancias;
+    listaMostrar.forEach(lpa => {
         const codigo = lpa.articuloCodigo || '-';
         const nombre = lpa.articuloDenominacion || '-';
         const tipoLista = lpa.listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
@@ -678,7 +850,22 @@ function renderizarTablaExplorerArticulos(instancias) {
         tablaExplorerArticulosBody.appendChild(tr);
     });
 }
-function seleccionarArticuloDesdeExplorer(lpa) {
+async function seleccionarArticuloDesdeExplorer(lpa) {
+    if (contextoExplorerArticulos === 'factura') {
+        if (lpa.listaPrecioId && lpa.listaPrecioId !== listaPrecioSeleccionadaId) {
+            comboAltaListaPrecio.setSelectedById(lpa.listaPrecioId, false);
+            await cambiarListaPrecioActiva(lpa.listaPrecioId);
+        }
+        const existeLpa = catalogoListaPrecioArticulos.some(x => x.id === lpa.id);
+        if (!existeLpa) {
+            catalogoListaPrecioArticulos.push(lpa);
+            actualizarOpcionesArticulosSegunLista(listaPrecioSeleccionadaId);
+        }
+        comboItemArticulo.setSelectedById(lpa.id, true);
+        cerrarExplorerArticulos();
+        inputItemCant?.focus();
+        return;
+    }
     const tipoLista = lpa.listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
     filtroListaPrecioArticuloId = lpa.id;
     filtroArticulo.value = `${lpa.articuloDenominacion} (${tipoLista})`;
@@ -745,8 +932,11 @@ async function manejarGuardarNuevoCliente(e) {
         // Si el formulario de factura está abierto, seleccionar automáticamente el nuevo cliente
         if (modalFactura && modalFactura.style.display !== 'none') {
             comboAltaCliente.setSelectedById(clienteCreado.id, true);
+            if (modalExplorerClientes && modalExplorerClientes.style.display !== 'none' && contextoExplorerClientes === 'factura') {
+                cerrarExplorerClientes();
+            }
         }
-        // Si el Explorer de clientes está abierto, refrescar su tabla
+        // Si el Explorer de clientes sigue abierto (ej. en modo filtro), refrescar su tabla
         if (modalExplorerClientes && modalExplorerClientes.style.display !== 'none') {
             await ejecutarBusquedaExplorerClientes();
         }
@@ -863,8 +1053,11 @@ async function manejarGuardarNuevoArticulo(e) {
             if (lpaParaListaActiva) {
                 comboItemArticulo.setSelectedById(lpaParaListaActiva.id, true);
             }
+            if (modalExplorerArticulos && modalExplorerArticulos.style.display !== 'none' && contextoExplorerArticulos === 'factura') {
+                cerrarExplorerArticulos();
+            }
         }
-        // Si el Explorer de artículos está abierto, refrescar su tabla
+        // Si el Explorer de artículos sigue abierto (ej. en modo filtro), refrescar su tabla
         if (modalExplorerArticulos && modalExplorerArticulos.style.display !== 'none') {
             await ejecutarBusquedaExplorerArticulos();
         }
@@ -965,7 +1158,7 @@ async function abrirFormularioAlta() {
     detallesEnMemoria = [];
     lpaSeleccionadoActual = null;
     comboAltaCliente.clear();
-    comboAltaCondicionIva.clear();
+    comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
     comboAltaPuntoVenta.clear();
     comboItemArticulo.clear();
     // Por defecto: Precio Lista = Minorista (FK = 1) y Tipo de Moneda = Pesos Argentinos (ID = 1)
@@ -1010,8 +1203,13 @@ async function abrirFormularioEdicion(facturaResumen) {
             ?? 1;
         comboAltaListaPrecio.setSelectedById(listaIdFactura, false);
         await cambiarListaPrecioActiva(listaIdFactura);
-        comboAltaCliente.setSelectedById(factura.clienteId ?? 1, false);
-        comboAltaCondicionIva.setSelectedById(factura.condicionIvaId ?? 1, false);
+        if (factura.clienteId) {
+            comboAltaCliente.setSelectedById(factura.clienteId, false);
+        }
+        else {
+            comboAltaCliente.clear();
+        }
+        comboAltaCondicionIva.setSelectedById(factura.condicionIvaId ?? obtenerIdCondicionIvaConsumidorFinal(), false);
         comboAltaPuntoVenta.setSelectedById(factura.puntoVentaId ?? 1, false);
         comboAltaTipoMoneda.setSelectedById(factura.tipoMonedaId ?? 1, false);
         inputObservaciones.value = factura.observaciones || '';
@@ -1167,13 +1365,10 @@ async function manejarGuardarFactura(e) {
         return;
     }
     const clienteId = comboAltaCliente.getSelectedId();
-    const condicionIvaId = comboAltaCondicionIva.getSelectedId();
+    const condicionIvaSeleccionada = comboAltaCondicionIva.getSelectedId();
+    const condicionIvaId = condicionIvaSeleccionada ?? (!clienteId ? obtenerIdCondicionIvaConsumidorFinal() : undefined);
     const puntoVentaId = comboAltaPuntoVenta.getSelectedId();
     const tipoMonedaId = comboAltaTipoMoneda.getSelectedId(1) ?? 1;
-    if (!clienteId) {
-        alert('Seleccione un Cliente válido de la lista desplegable.');
-        return;
-    }
     if (!condicionIvaId) {
         alert('Seleccione una Condición de IVA válida de la lista desplegable.');
         return;
@@ -1185,7 +1380,7 @@ async function manejarGuardarFactura(e) {
     const idEdicion = inputFacturaId.value ? parseInt(inputFacturaId.value, 10) : null;
     const esEdicion = idEdicion !== null && !isNaN(idEdicion) && idEdicion > 0;
     const payload = {
-        clienteId: clienteId,
+        clienteId: clienteId ?? null,
         condicionIvaId: condicionIvaId,
         puntoVentaId: puntoVentaId,
         tipoMonedaId: tipoMonedaId,

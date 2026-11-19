@@ -23,7 +23,7 @@ public class FacturaVenta extends  AuditoriaApp{
     private Date fechaEmision;
 
     @ManyToOne
-    @JoinColumn(nullable = false)
+    @JoinColumn(nullable = true)
     private Cliente cliente;
 
     @ManyToOne

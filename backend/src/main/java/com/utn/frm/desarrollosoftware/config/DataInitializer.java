@@ -48,6 +48,7 @@ public class DataInitializer implements CommandLineRunner {
             "importe_iva",
             "subtotal_neto",
             "subtotal_final",
+            "cliente_id",
             "condicion_iva_id",
             "tipo_moneda_id",
             "punto_venta_id",

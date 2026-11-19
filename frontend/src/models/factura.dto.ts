@@ -136,7 +136,7 @@ export interface FacturaDetalleRequestDTO {
 // Salida / Alta y Modificación de Factura
 export interface FacturaRequestDTO {
     numero?: number;
-    clienteId: number;
+    clienteId?: number | null;
     condicionIvaId: number;
     puntoVentaId: number;
     tipoMonedaId: number;
