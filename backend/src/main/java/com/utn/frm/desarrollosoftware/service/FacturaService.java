@@ -602,6 +602,29 @@ public class FacturaService {
 
     @Transactional
     public void eliminar(Long id, String username) {
+        FacturaVenta factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Factura no encontrada con ID: " + id));
+
+        if (factura.getFechaBaja() != null) {
+            log.warn("La factura ID {} ya se encontraba dada de baja/anulada.", id);
+            return;
+        }
+
+        boolean informadaArca = factura.getCae() != null && !factura.getCae().trim().isEmpty();
+
+        if (informadaArca) {
+            // Una factura ya informada a ARCA no se puede eliminar físicamente, sino que se ANULA lógicamente
+            anular(id, username);
+        } else {
+            // Una factura aún pendiente (no informada a ARCA) se puede eliminar físicamente
+            log.info("Eliminando físicamente factura pendiente ID: {}", id);
+            facturaRepository.delete(factura);
+            log.info("Factura pendiente ID {} eliminada físicamente de la BD.", id);
+        }
+    }
+
+    @Transactional
+    public FacturaReporteDTO anular(Long id, String username) {
         log.info("Procesando anulación lógica para factura ID: {}", id);
 
         FacturaVenta factura = facturaRepository.findById(id)
@@ -609,16 +632,19 @@ public class FacturaService {
 
         if (factura.getFechaBaja() != null) {
             log.warn("La factura ID {} ya se encontraba anulada.", id);
-            return;
+            return mapearAReporteDTO(factura);
         }
 
+        Date ahora = new Date();
         Usuario usuario = obtenerUsuarioParaAuditoria(username);
         factura.setFechaBaja(usuario);
+        factura.setFechaModificacion(ahora);
+        factura.setFechaAnulacion(ahora);
         factura.setEstado("ANULADA");
-        factura.setFechaAnulacion(new Date());
 
-        facturaRepository.save(factura);
-        log.info("Factura ID {} anulada lógicamente.", id);
+        FacturaVenta guardada = facturaRepository.save(factura);
+        log.info("Factura ID {} anulada lógicamente (fechaBaja, fechaAnulacion, fechaModificacion actualizadas).", id);
+        return mapearAReporteDTO(guardada);
     }
 
     private FacturaVentaDetalle crearDetalleDesdeDto(FacturaDetalleRequestDTO detDto, FacturaVenta factura) {

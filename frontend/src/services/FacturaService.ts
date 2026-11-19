@@ -358,6 +358,22 @@ export class FacturaService {
         }
     }
 
+    async anularFactura(id: number): Promise<FacturaReporteDTO> {
+        const respuesta = await fetch(`${this.baseUrl}/${id}/anular`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!respuesta.ok) {
+            const errorMsg = await respuesta.text();
+            throw new Error(`Error ${respuesta.status}: ${errorMsg || respuesta.statusText}`);
+        }
+
+        return await respuesta.json();
+    }
+
     async descargarPdf(filtros?: FacturaFiltrosDTO): Promise<void> {
         const url = new URL(`${this.baseUrl}/pdf`);
 
