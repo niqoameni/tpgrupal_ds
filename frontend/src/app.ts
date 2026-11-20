@@ -1700,6 +1700,10 @@ function renderizarTablaFacturas(facturas: FacturaReporteDTO[]): void {
             ? `<button type="button" class="btn btn-editar btn-sm" disabled title="No editable: factura ya declarada en ARCA (posee CAE)">🔒 Editar</button>`
             : `<button type="button" class="btn btn-editar btn-sm">✏️ Editar</button>`;
 
+        const btnBajaHtml = tieneCae
+            ? `<button type="button" class="btn btn-danger btn-sm btn-anular" title="Anular factura declarada en ARCA">🚫 Anular</button>`
+            : `<button type="button" class="btn btn-danger btn-sm btn-eliminar" title="Eliminar factura pendiente">🗑️ Eliminar</button>`;
+
         const fila = document.createElement('tr');
         fila.innerHTML = `
             <td><strong>${nroMostrar}</strong>${badgeCae}</td>
@@ -1714,7 +1718,7 @@ function renderizarTablaFacturas(facturas: FacturaReporteDTO[]): void {
                     <button type="button" class="btn btn-outline btn-sm btn-pdf-factura" title="Imprimir factura en PDF">📄</button>
                     ${btnInformarArcaHtml}
                     ${btnEditarHtml}
-                    <button type="button" class="btn btn-danger btn-sm btn-eliminar">🗑️ Eliminar</button>
+                    ${btnBajaHtml}
                 </div>
             </td>
         `;
@@ -1726,8 +1730,10 @@ function renderizarTablaFacturas(facturas: FacturaReporteDTO[]): void {
                 ejecutarInformarFacturaArca(f.id, btn);
             });
             fila.querySelector('.btn-editar')?.addEventListener('click', () => abrirFormularioEdicion(f));
+            fila.querySelector('.btn-eliminar')?.addEventListener('click', () => ejecutarEliminarFactura(f.id, f.numeroFactura));
+        } else {
+            fila.querySelector('.btn-anular')?.addEventListener('click', () => ejecutarAnularFactura(f.id, f.numeroFactura));
         }
-        fila.querySelector('.btn-eliminar')?.addEventListener('click', () => ejecutarEliminarFactura(f.id, f.numeroFactura));
 
         tablaFacturasBody.appendChild(fila);
     });
@@ -1813,7 +1819,7 @@ async function ejecutarInformarFacturaArca(id: number, btn?: HTMLButtonElement):
 
 async function ejecutarEliminarFactura(id: number, numero?: number): Promise<void> {
     const etiqueta = numero ? `N° ${numero}` : `(ID ${id})`;
-    if (!confirm(`¿Desea dar de baja la Factura ${etiqueta}?`)) return;
+    if (!confirm(`¿Desea eliminar la Factura pendiente ${etiqueta}?`)) return;
 
     try {
         await facturaService.eliminarFactura(id);
@@ -1822,6 +1828,20 @@ async function ejecutarEliminarFactura(id: number, numero?: number): Promise<voi
     } catch (error: any) {
         console.error(error);
         alert(`Error al eliminar: ${error.message}`);
+    }
+}
+
+async function ejecutarAnularFactura(id: number, numero?: number): Promise<void> {
+    const etiqueta = numero ? `N° ${numero}` : `(ID ${id})`;
+    if (!confirm(`¿Desea ANULAR la Factura ${etiqueta} informada en ARCA?`)) return;
+
+    try {
+        await facturaService.anularFactura(id);
+        alert(`Factura ${etiqueta} anulada exitosamente.`);
+        await cargarListadoFacturas(paginaActual);
+    } catch (error: any) {
+        console.error(error);
+        alert(`Error al anular: ${error.message}`);
     }
 }
 

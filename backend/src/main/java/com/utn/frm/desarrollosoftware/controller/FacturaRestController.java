@@ -177,4 +177,13 @@ public class FacturaRestController {
         facturaService.eliminar(id, usuario);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/anular")
+    public ResponseEntity<FacturaReporteDTO> anularFactura(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "admin") String usuario
+    ) {
+        FacturaReporteDTO anulada = facturaService.anular(id, usuario);
+        return ResponseEntity.ok(anulada);
+    }
 }

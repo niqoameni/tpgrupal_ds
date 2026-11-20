@@ -185,6 +185,24 @@ public class PdfItextExporter {
                     .setMarginTop(16);
             document.add(totalParrafo);
 
+            boolean esPendiente = (factura.getCae() == null || factura.getCae().trim().isEmpty())
+                    || (factura.getEstado() != null && factura.getEstado().toUpperCase().contains("PENDIENTE"));
+
+            if (esPendiente) {
+                Paragraph pieNoValido = new Paragraph("Comprobante no valido como factura")
+                        .setFont(boldFont)
+                        .setFontSize(11)
+                        .setFontColor(ColorConstants.RED)
+                        .setTextAlignment(TextAlignment.CENTER);
+
+                int totalPages = pdfDoc.getNumberOfPages();
+                for (int i = 1; i <= totalPages; i++) {
+                    float x = pdfDoc.getPage(i).getPageSize().getWidth() / 2f;
+                    float y = 25f;
+                    document.showTextAligned(pieNoValido, x, y, i, TextAlignment.CENTER, com.itextpdf.layout.properties.VerticalAlignment.BOTTOM, 0);
+                }
+            }
+
             document.close();
             return baos.toByteArray();
 
