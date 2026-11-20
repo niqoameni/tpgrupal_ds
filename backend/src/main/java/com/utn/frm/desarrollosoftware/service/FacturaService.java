@@ -74,10 +74,11 @@ public class FacturaService {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
-            Boolean informadaArca
+            Boolean informadaArca,
+            String estado
     ) {
-        log.info("Búsqueda de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}",
-                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca);
+        log.info("Búsqueda de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}, Estado: {}",
+                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca, estado);
 
         List<FacturaReporteDTO> resultados = facturaRepository.buscarFacturasFiltradas(
                 numeroFactura,
@@ -86,7 +87,8 @@ public class FacturaService {
                 fechaHasta,
                 condicionIvaId,
                 listaPrecioArticuloId,
-                informadaArca
+                informadaArca,
+                estado
         );
 
         log.info("Búsqueda finalizada. Se encontraron {} registros.", resultados.size());
@@ -102,10 +104,11 @@ public class FacturaService {
             Long condicionIvaId,
             Long listaPrecioArticuloId,
             Boolean informadaArca,
+            String estado,
             Pageable pageable
     ) {
-        log.info("Búsqueda paginada de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}, Page: {}, Size: {}",
-                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca,
+        log.info("Búsqueda paginada de facturas - Nro: {}, Cliente: {}, Desde: {}, Hasta: {}, CondIva: {}, LPA: {}, InformadaARCA: {}, Estado: {}, Page: {}, Size: {}",
+                numeroFactura, cliente, fechaDesde, fechaHasta, condicionIvaId, listaPrecioArticuloId, informadaArca, estado,
                 pageable != null ? pageable.getPageNumber() : 0,
                 pageable != null ? pageable.getPageSize() : 0);
 
@@ -117,6 +120,7 @@ public class FacturaService {
                 condicionIvaId,
                 listaPrecioArticuloId,
                 informadaArca,
+                estado,
                 pageable
         );
 
@@ -475,11 +479,12 @@ public class FacturaService {
         }
 
         CondicionIva condicionIva;
-        if (request.getCondicionIvaId() != null) {
+        if (cliente == null) {
+            // Si no se seleccionó cliente (Consumidor Final), la condición de IVA siempre debe ser Consumidor Final
+            condicionIva = obtenerCondicionIvaConsumidorFinal();
+        } else if (request.getCondicionIvaId() != null) {
             condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
                     .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
-        } else if (cliente == null) {
-            condicionIva = obtenerCondicionIvaConsumidorFinal();
         } else {
             throw new IllegalArgumentException("Debe seleccionar una condición de IVA.");
         }
@@ -562,12 +567,13 @@ public class FacturaService {
             factura.setCliente(null);
         }
 
-        if (request.getCondicionIvaId() != null) {
+        if (request.getClienteId() == null) {
+            // Si no hay cliente seleccionado (Consumidor Final), la condición de IVA siempre es Consumidor Final
+            factura.setCondicionIva(obtenerCondicionIvaConsumidorFinal());
+        } else if (request.getCondicionIvaId() != null) {
             CondicionIva condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
                     .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
             factura.setCondicionIva(condicionIva);
-        } else if (request.getClienteId() == null) {
-            factura.setCondicionIva(obtenerCondicionIvaConsumidorFinal());
         }
 
         if (request.getPuntoVentaId() != null) {
@@ -637,6 +643,10 @@ public class FacturaService {
 
         FacturaVenta factura = facturaRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Factura no encontrada con ID: " + id));
+
+        if (factura.getCae() == null || factura.getCae().trim().isEmpty()) {
+            throw new IllegalStateException("Solo se pueden anular facturas que ya fueron informadas a ARCA (poseen CAE). Las facturas pendientes deben eliminarse.");
+        }
 
         if (factura.getFechaBaja() != null) {
             log.warn("La factura ID {} ya se encontraba anulada.", id);

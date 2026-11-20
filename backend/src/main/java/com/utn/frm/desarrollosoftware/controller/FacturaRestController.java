@@ -41,6 +41,7 @@ public class FacturaRestController {
             @RequestParam(required = false) Long condicionIvaId,
             @RequestParam(required = false) Long listaPrecioArticuloId,
             @RequestParam(required = false) Boolean informadaArca,
+            @RequestParam(required = false) String estado,
             @PageableDefault(page = 0, size = 5) Pageable pageable
     ) {
         Page<FacturaReporteDTO> pagina = facturaService.buscarFacturasPaginadas(
@@ -51,6 +52,7 @@ public class FacturaRestController {
                 condicionIvaId,
                 listaPrecioArticuloId,
                 informadaArca,
+                estado,
                 pageable
         );
         return ResponseEntity.ok(pagina);
@@ -135,7 +137,8 @@ public class FacturaRestController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fechaHasta,
             @RequestParam(required = false) Long condicionIvaId,
             @RequestParam(required = false) Long listaPrecioArticuloId,
-            @RequestParam(required = false) Boolean informadaArca
+            @RequestParam(required = false) Boolean informadaArca,
+            @RequestParam(required = false) String estado
     ) {
         List<FacturaReporteDTO> facturas = facturaService.buscarFacturas(
                 numero,
@@ -144,7 +147,8 @@ public class FacturaRestController {
                 fechaHasta,
                 condicionIvaId,
                 listaPrecioArticuloId,
-                informadaArca
+                informadaArca,
+                estado
         );
         byte[] pdfBytes = PdfItextExporter.exportarEnMemoria(facturas);
 

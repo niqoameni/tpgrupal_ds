@@ -705,6 +705,23 @@ input[type="checkbox"] {
     border: 1px solid var(--ink);
 }
 
+.badge-anulada {
+    display: inline-block;
+    padding: 1px 7px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-left: 4px;
+    background-color: var(--danger);
+    color: #ffffff;
+    border: 1px solid var(--ink);
+}
+
+.explorer-pagination-bar {
+    margin-top: 12px;
+    padding-top: 10px;
+    gap: 10px;
+}
+
 /* ---------------------------------------------------------------------
    Botones biselados
    --------------------------------------------------------------------- */

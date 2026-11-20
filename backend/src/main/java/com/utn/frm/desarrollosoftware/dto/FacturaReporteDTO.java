@@ -73,4 +73,13 @@ public class FacturaReporteDTO {
         this.caeFechaVencimiento = caeFechaVencimiento;
         this.resultadoAfip = resultadoAfip;
     }
+
+    // Constructor con datos AFIP y estado para listados paginados
+    public FacturaReporteDTO(Long id, Long numeroFactura, Date fechaEmision, String clienteDenominacion,
+                             String condicionIva, String puntoVentaDescripcion,
+                             Double importeFinal, Long cantidadItems,
+                             String cae, Date caeFechaVencimiento, String resultadoAfip, String estado) {
+        this(id, numeroFactura, fechaEmision, clienteDenominacion, condicionIva, puntoVentaDescripcion, importeFinal, cantidadItems, cae, caeFechaVencimiento, resultadoAfip);
+        this.estado = estado;
+    }
 }

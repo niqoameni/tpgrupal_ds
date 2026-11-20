@@ -161,6 +161,9 @@ export class FacturaService {
             if (filtros.informadaArca !== undefined && filtros.informadaArca !== null) {
                 url.searchParams.append('informadaArca', filtros.informadaArca.toString());
             }
+            if (filtros.estado && filtros.estado.trim() !== '') {
+                url.searchParams.append('estado', filtros.estado.trim());
+            }
         }
         const respuesta = await fetch(url.toString(), {
             method: 'GET',
@@ -319,6 +322,9 @@ export class FacturaService {
             }
             if (filtros.informadaArca !== undefined && filtros.informadaArca !== null) {
                 url.searchParams.append('informadaArca', filtros.informadaArca.toString());
+            }
+            if (filtros.estado && filtros.estado.trim() !== '') {
+                url.searchParams.append('estado', filtros.estado.trim());
             }
         }
         const respuesta = await fetch(url.toString(), {

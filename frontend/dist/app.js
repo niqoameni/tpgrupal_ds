@@ -13,6 +13,8 @@ let catalogoListaPrecioArticulos = [...CATALOGO_LISTA_PRECIO_ARTICULOS];
 let siguienteCodigoArticuloCache = 'ART-007';
 // Lista de precio activa en el formulario (1 = Minorista, 2 = Mayorista)
 let listaPrecioSeleccionadaId = 1;
+// ID del cliente seleccionado actualmente en el formulario de Alta/Edición de Factura
+let clienteSeleccionadoFacturaId = null;
 // Instancia de ListaPrecioArticulo seleccionada actualmente en el selector de Artículo del alta
 let lpaSeleccionadoActual = null;
 // ID de la instancia ListaPrecioArticulo seleccionada en el filtro de búsqueda de facturas
@@ -20,7 +22,13 @@ let filtroListaPrecioArticuloId = undefined;
 // Contexto desde el cual se abre cada Explorer ('filtro' de búsqueda principal o 'factura' en alta/edición)
 let contextoExplorerClientes = 'filtro';
 let contextoExplorerArticulos = 'filtro';
-// Estado de Paginación
+// Estado de Paginación de los Explorers (5 opciones por página)
+const TAMANIO_PAGINA_EXPLORER = 5;
+let clientesExplorerFiltrados = [];
+let paginaExplorerClientes = 0;
+let articulosExplorerFiltrados = [];
+let paginaExplorerArticulos = 0;
+// Estado de Paginación Principal
 let paginaActual = 0;
 let tamanioPagina = 5;
 let totalPaginas = 0;
@@ -337,12 +345,10 @@ class SearchableCombobox {
 }
 // Instancias de SearchableCombobox
 let comboFiltroCondicionIva;
-let comboAltaCliente;
 let comboAltaCondicionIva;
 let comboAltaPuntoVenta;
 let comboAltaListaPrecio;
 let comboAltaTipoMoneda;
-let comboItemArticulo;
 let comboArticuloMarca;
 let comboArticuloRubro;
 // DOM Filtros
@@ -356,7 +362,7 @@ const btnLimpiarFiltroArticulo = document.getElementById('btn-limpiar-filtro-art
 const filtroFechaDesde = document.getElementById('filtro-fecha-desde');
 const filtroFechaHasta = document.getElementById('filtro-fecha-hasta');
 const filtroCondicionIva = document.getElementById('filtro-condicion-iva');
-const filtroArcaInformadas = document.getElementById('filtro-arca-informadas');
+const filtroEstado = document.getElementById('filtro-estado');
 // DOM Grilla y Paginación
 const tablaFacturasBody = document.getElementById('tabla-facturas-body');
 const btnExportarPdf = document.getElementById('btn-exportar-pdf');
@@ -382,9 +388,12 @@ const btnSubmitFactura = document.getElementById('btn-submit-factura');
 const btnNuevoClienteFactura = document.getElementById('btn-nuevo-cliente-factura');
 const btnNuevoArticuloFactura = document.getElementById('btn-nuevo-articulo-factura');
 const inputNumeroComprobante = document.getElementById('alta-numero-comprobante');
+const inputAltaCliente = document.getElementById('alta-cliente-id');
+const btnLimpiarAltaCliente = document.getElementById('btn-limpiar-alta-cliente');
 const inputObservaciones = document.getElementById('alta-observaciones');
 // DOM Renglones dentro del formulario unificado
 const inputItemArticuloId = document.getElementById('item-articulo-id');
+const btnLimpiarItemArticulo = document.getElementById('btn-limpiar-item-articulo');
 const inputItemDesc = document.getElementById('item-descripcion');
 const inputItemCant = document.getElementById('item-cantidad');
 const inputItemBonif = document.getElementById('item-bonificacion');
@@ -402,6 +411,12 @@ const inputExplorerCuit = document.getElementById('explorer-cliente-cuit');
 const btnLimpiarExplorerClientes = document.getElementById('btn-limpiar-explorer-clientes');
 const btnNuevoClienteExplorer = document.getElementById('btn-nuevo-cliente-explorer');
 const tablaExplorerClientesBody = document.getElementById('tabla-explorer-clientes-body');
+const expCliPagTexto = document.getElementById('explorer-clientes-paginacion-texto');
+const btnExpCliFirst = document.getElementById('btn-exp-cli-first');
+const btnExpCliPrev = document.getElementById('btn-exp-cli-prev');
+const expCliPagNumeros = document.getElementById('explorer-clientes-paginacion-numeros');
+const btnExpCliNext = document.getElementById('btn-exp-cli-next');
+const btnExpCliLast = document.getElementById('btn-exp-cli-last');
 // DOM Modal Explorer de Artículos
 const modalExplorerArticulos = document.getElementById('modal-explorer-articulos');
 const btnCerrarExplorerArticulos = document.getElementById('btn-cerrar-explorer-articulos');
@@ -412,6 +427,12 @@ const inputExplorerArticuloTexto = document.getElementById('explorer-articulo-te
 const btnLimpiarExplorerArticulos = document.getElementById('btn-limpiar-explorer-articulos');
 const btnNuevoArticuloExplorer = document.getElementById('btn-nuevo-articulo-explorer');
 const tablaExplorerArticulosBody = document.getElementById('tabla-explorer-articulos-body');
+const expArtPagTexto = document.getElementById('explorer-articulos-paginacion-texto');
+const btnExpArtFirst = document.getElementById('btn-exp-art-first');
+const btnExpArtPrev = document.getElementById('btn-exp-art-prev');
+const expArtPagNumeros = document.getElementById('explorer-articulos-paginacion-numeros');
+const btnExpArtNext = document.getElementById('btn-exp-art-next');
+const btnExpArtLast = document.getElementById('btn-exp-art-last');
 // DOM Modal Nuevo Cliente
 const modalNuevoCliente = document.getElementById('modal-nuevo-cliente');
 const btnCerrarModalCliente = document.getElementById('btn-cerrar-modal-cliente');
@@ -453,9 +474,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.stopPropagation();
         limpiarSeleccionFiltroArticulo();
     });
-    // Evento del check único de filtro ARCA (Marcado = Declaradas, Desmarcado = No declaradas)
-    filtroArcaInformadas?.addEventListener('change', () => {
+    // Evento del desplegable de filtro por Estado ("INFORMADA", "PENDIENTE", "ANULADA")
+    filtroEstado?.addEventListener('change', () => {
         cargarListadoFacturas(0);
+    });
+    // Eventos de Cliente y Artículo en Alta/Edición de Factura (abren directamente el Explorer al tocarlos)
+    inputAltaCliente?.addEventListener('click', () => abrirExplorerClientes('factura'));
+    btnLimpiarAltaCliente?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        seleccionarClienteEnFactura(null, true);
+    });
+    inputItemArticuloId?.addEventListener('click', () => abrirExplorerArticulos('factura'));
+    btnLimpiarItemArticulo?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        seleccionarArticuloEnFactura(null);
     });
     // Eventos dentro del Modal Explorer de Clientes
     btnCerrarExplorerClientes?.addEventListener('click', cerrarExplorerClientes);
@@ -471,6 +503,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         await ejecutarBusquedaExplorerClientes();
     });
     btnNuevoClienteExplorer?.addEventListener('click', abrirModalNuevoCliente);
+    btnExpCliFirst?.addEventListener('click', () => irAPaginaExplorerClientes(0));
+    btnExpCliPrev?.addEventListener('click', () => irAPaginaExplorerClientes(paginaExplorerClientes - 1));
+    btnExpCliNext?.addEventListener('click', () => irAPaginaExplorerClientes(paginaExplorerClientes + 1));
+    btnExpCliLast?.addEventListener('click', () => {
+        const totalPag = Math.ceil(clientesExplorerFiltrados.length / TAMANIO_PAGINA_EXPLORER);
+        irAPaginaExplorerClientes(Math.max(0, totalPag - 1));
+    });
     // Eventos dentro del Modal Explorer de Artículos
     btnCerrarExplorerArticulos?.addEventListener('click', cerrarExplorerArticulos);
     btnCancelarExplorerArticulos?.addEventListener('click', cerrarExplorerArticulos);
@@ -485,6 +524,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         await ejecutarBusquedaExplorerArticulos();
     });
     btnNuevoArticuloExplorer?.addEventListener('click', abrirModalNuevoArticulo);
+    btnExpArtFirst?.addEventListener('click', () => irAPaginaExplorerArticulos(0));
+    btnExpArtPrev?.addEventListener('click', () => irAPaginaExplorerArticulos(paginaExplorerArticulos - 1));
+    btnExpArtNext?.addEventListener('click', () => irAPaginaExplorerArticulos(paginaExplorerArticulos + 1));
+    btnExpArtLast?.addEventListener('click', () => {
+        const totalPag = Math.ceil(articulosExplorerFiltrados.length / TAMANIO_PAGINA_EXPLORER);
+        irAPaginaExplorerArticulos(Math.max(0, totalPag - 1));
+    });
     // Eventos para abrir el formulario de Factura en modo Alta
     btnNuevaFactura?.addEventListener('click', abrirFormularioAlta);
     btnNuevaFacturaHeader?.addEventListener('click', abrirFormularioAlta);
@@ -544,18 +590,6 @@ function obtenerIdCondicionIvaConsumidorFinal() {
  */
 function inicializarComboboxes() {
     comboFiltroCondicionIva = new SearchableCombobox('combo-filtro-condicion-iva');
-    comboAltaCliente = new SearchableCombobox('combo-alta-cliente', undefined, {
-        maxInitialSuggestions: 1,
-        explorerLabel: '🔍 Abrir Explorador de Clientes...',
-        onOpenExplorer: (termino) => {
-            abrirExplorerClientes('factura', termino);
-        },
-        onClear: () => {
-            if (!comboAltaCondicionIva.getSelectedId()) {
-                comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
-            }
-        }
-    });
     comboAltaCondicionIva = new SearchableCombobox('combo-alta-condicion-iva');
     comboAltaPuntoVenta = new SearchableCombobox('combo-alta-punto-venta');
     // Al cambiar entre Minorista (FK=1) y Mayorista (FK=2), se recargan las instancias de ListaPrecioArticulo
@@ -563,22 +597,6 @@ function inicializarComboboxes() {
         await cambiarListaPrecioActiva(opcion.id);
     });
     comboAltaTipoMoneda = new SearchableCombobox('combo-alta-tipo-moneda');
-    // Desplegable de Artículos: muestra sugerencia o autocompleta al escribir y permite abrir el Explorer
-    comboItemArticulo = new SearchableCombobox('combo-item-articulo', (opcion) => {
-        lpaSeleccionadoActual = opcion.raw;
-        if (!inputItemDesc.value.trim()) {
-            inputItemDesc.value = opcion.raw.articuloDenominacion;
-        }
-    }, {
-        maxInitialSuggestions: 2,
-        explorerLabel: '🔍 Abrir Explorador de Artículos...',
-        onOpenExplorer: (termino) => {
-            abrirExplorerArticulos('factura', termino);
-        },
-        onClear: () => {
-            lpaSeleccionadoActual = null;
-        }
-    });
     comboArticuloMarca = new SearchableCombobox('combo-articulo-marca');
     comboArticuloRubro = new SearchableCombobox('combo-articulo-rubro');
     poblarOpcionesComboboxes();
@@ -588,19 +606,60 @@ function inicializarComboboxes() {
  */
 function poblarOpcionesComboboxes() {
     comboFiltroCondicionIva.setOptions(catalogoCondicionesIva.map(c => ({ id: c.id, label: c.nombre, subtitle: c.detalle, raw: c })));
-    comboAltaCliente.setOptions(catalogoClientes.map(c => ({
-        id: c.id,
-        label: c.denominacion || c.nombre,
-        subtitle: c.detalle || `CUIT: ${c.cuitCuil || c.cuit || '-'}`,
-        raw: c
-    })));
     comboAltaCondicionIva.setOptions(catalogoCondicionesIva.map(c => ({ id: c.id, label: c.nombre, subtitle: c.detalle, raw: c })));
     comboAltaPuntoVenta.setOptions(catalogoPuntosVenta.map(pv => ({ id: pv.id, label: pv.nombre, subtitle: pv.detalle, raw: pv })));
     comboAltaListaPrecio.setOptions(catalogoListasPrecio.map(lp => ({ id: lp.id, label: lp.nombre, subtitle: lp.detalle, raw: lp })));
     comboAltaTipoMoneda.setOptions(catalogoTiposMoneda.map(tm => ({ id: tm.id, label: tm.nombre, subtitle: tm.detalle, raw: tm })));
     comboArticuloMarca.setOptions(catalogoMarcas.map(m => ({ id: m.id, label: m.nombre, subtitle: m.detalle, raw: m })));
     comboArticuloRubro.setOptions(catalogoRubros.map(r => ({ id: r.id, label: r.nombre, subtitle: r.detalle, raw: r })));
-    actualizarOpcionesArticulosSegunLista(listaPrecioSeleccionadaId);
+}
+/**
+ * Asigna o limpia el cliente seleccionado en el formulario de Alta/Edición de Factura
+ */
+function seleccionarClienteEnFactura(cliente, ajustarCondicionIva = false) {
+    if (!cliente) {
+        clienteSeleccionadoFacturaId = null;
+        if (inputAltaCliente)
+            inputAltaCliente.value = '';
+        if (btnLimpiarAltaCliente)
+            btnLimpiarAltaCliente.style.display = 'none';
+        if (ajustarCondicionIva && !comboAltaCondicionIva.getSelectedId()) {
+            comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+        }
+        return;
+    }
+    clienteSeleccionadoFacturaId = cliente.id;
+    if (inputAltaCliente) {
+        inputAltaCliente.value = cliente.denominacion || cliente.nombre || '';
+    }
+    if (btnLimpiarAltaCliente) {
+        btnLimpiarAltaCliente.style.display = 'inline-block';
+    }
+}
+/**
+ * Asigna o limpia el artículo seleccionado en el formulario de Alta/Edición de Factura
+ */
+function seleccionarArticuloEnFactura(lpa) {
+    if (!lpa) {
+        lpaSeleccionadoActual = null;
+        if (inputItemArticuloId)
+            inputItemArticuloId.value = '';
+        if (btnLimpiarItemArticulo)
+            btnLimpiarItemArticulo.style.display = 'none';
+        return;
+    }
+    lpaSeleccionadoActual = lpa;
+    const tipoLista = lpa.listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
+    const precioFmt = lpa.precioVenta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (inputItemArticuloId) {
+        inputItemArticuloId.value = `${lpa.articuloDenominacion} ($ ${precioFmt} - ${tipoLista})`;
+    }
+    if (btnLimpiarItemArticulo) {
+        btnLimpiarItemArticulo.style.display = 'inline-block';
+    }
+    if (inputItemDesc && !inputItemDesc.value.trim()) {
+        inputItemDesc.value = lpa.articuloDenominacion;
+    }
 }
 /**
  * Sincroniza los catálogos reales desde la base de datos
@@ -633,7 +692,7 @@ async function sincronizarCatalogosDesdeServidor() {
     }
 }
 // =========================================================
-// EXPLORER DE CLIENTES (BÚSQUEDA POR NOMBRE O CUIT/CUIL)
+// EXPLORER DE CLIENTES (BÚSQUEDA POR NOMBRE O CUIT/CUIL, PAGINADO)
 // =========================================================
 async function abrirExplorerClientes(contexto = 'filtro', textoInicial = '') {
     contextoExplorerClientes = contexto;
@@ -651,7 +710,6 @@ function cerrarExplorerClientes() {
 async function ejecutarBusquedaExplorerClientes() {
     const nombre = inputExplorerNombre?.value.trim() || '';
     const cuit = inputExplorerCuit?.value.trim().replace(/[^0-9]/g, '') || '';
-    const esSugerenciaInicial = !nombre && !cuit;
     let resultados = [];
     try {
         resultados = await facturaService.buscarClientes(nombre, cuit);
@@ -666,30 +724,23 @@ async function ejecutarBusquedaExplorerClientes() {
             return coincideNombre && coincideCuit;
         });
     }
-    renderizarTablaExplorerClientes(resultados, esSugerenciaInicial);
+    clientesExplorerFiltrados = resultados || [];
+    paginaExplorerClientes = 0;
+    renderizarTablaExplorerClientes();
 }
-function renderizarTablaExplorerClientes(clientes, esSugerenciaInicial = false) {
-    tablaExplorerClientesBody.innerHTML = '';
-    if (contextoExplorerClientes === 'factura' && esSugerenciaInicial) {
-        const trCf = document.createElement('tr');
-        trCf.innerHTML = `
-            <td><strong>Consumidor Final</strong> <span class="badge-lista">Por defecto</span></td>
-            <td>-</td>
-            <td>Venta sin cliente nominado</td>
-            <td class="text-center">
-                <button type="button" class="btn btn-outline btn-sm btn-elegir-consumidor-final">✓ Consumidor Final</button>
-            </td>
-        `;
-        trCf.querySelector('.btn-elegir-consumidor-final')?.addEventListener('click', () => {
-            comboAltaCliente.clear();
-            if (!comboAltaCondicionIva.getSelectedId()) {
-                comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
-            }
-            cerrarExplorerClientes();
-        });
-        tablaExplorerClientesBody.appendChild(trCf);
+function irAPaginaExplorerClientes(nuevaPagina) {
+    const totalPaginasExp = Math.ceil(clientesExplorerFiltrados.length / TAMANIO_PAGINA_EXPLORER);
+    if (nuevaPagina < 0 || (totalPaginasExp > 0 && nuevaPagina >= totalPaginasExp) || nuevaPagina === paginaExplorerClientes) {
+        return;
     }
-    if (!clientes || clientes.length === 0) {
+    paginaExplorerClientes = nuevaPagina;
+    renderizarTablaExplorerClientes();
+}
+function renderizarTablaExplorerClientes() {
+    tablaExplorerClientesBody.innerHTML = '';
+    const total = clientesExplorerFiltrados.length;
+    const totalPag = Math.ceil(total / TAMANIO_PAGINA_EXPLORER);
+    if (total === 0) {
         const trEmpty = document.createElement('tr');
         trEmpty.innerHTML = `
             <td colspan="4" class="text-center text-muted">
@@ -697,18 +748,11 @@ function renderizarTablaExplorerClientes(clientes, esSugerenciaInicial = false) 
             </td>
         `;
         tablaExplorerClientesBody.appendChild(trEmpty);
+        renderizarPaginacionExplorer(0, 0, 0, 0, expCliPagTexto, btnExpCliFirst, btnExpCliPrev, expCliPagNumeros, btnExpCliNext, btnExpCliLast, 'clientes', irAPaginaExplorerClientes);
         return;
     }
-    if (esSugerenciaInicial) {
-        const trHint = document.createElement('tr');
-        trHint.innerHTML = `
-            <td colspan="4" class="explorer-hint-cell">
-                💡 Sugerencia inicial — empiece a escribir Nombre o CUIT arriba para autocompletar clientes.
-            </td>
-        `;
-        tablaExplorerClientesBody.appendChild(trHint);
-    }
-    const listaMostrar = esSugerenciaInicial ? clientes.slice(0, 1) : clientes;
+    const desdeIdx = paginaExplorerClientes * TAMANIO_PAGINA_EXPLORER;
+    const listaMostrar = clientesExplorerFiltrados.slice(desdeIdx, desdeIdx + TAMANIO_PAGINA_EXPLORER);
     listaMostrar.forEach(c => {
         const nombreMostrar = c.denominacion || c.nombre || '-';
         const cuitMostrar = c.cuitCuil || c.cuit || '-';
@@ -737,15 +781,15 @@ function renderizarTablaExplorerClientes(clientes, esSugerenciaInicial = false) 
         });
         tablaExplorerClientesBody.appendChild(tr);
     });
+    renderizarPaginacionExplorer(paginaExplorerClientes, listaMostrar.length, total, totalPag, expCliPagTexto, btnExpCliFirst, btnExpCliPrev, expCliPagNumeros, btnExpCliNext, btnExpCliLast, 'clientes', irAPaginaExplorerClientes);
 }
 function seleccionarClienteDesdeExplorer(cliente) {
     const existe = catalogoClientes.some(c => c.id === cliente.id);
     if (!existe) {
         catalogoClientes.push(cliente);
-        poblarOpcionesComboboxes();
     }
     if (contextoExplorerClientes === 'factura') {
-        comboAltaCliente.setSelectedById(cliente.id, true);
+        seleccionarClienteEnFactura(cliente, false);
         cerrarExplorerClientes();
         return;
     }
@@ -765,7 +809,7 @@ function limpiarSeleccionFiltroCliente() {
     cargarListadoFacturas(0);
 }
 // =========================================================
-// EXPLORER DE ARTÍCULOS (FILTRAR POR TIPO DE LISTA, ARTÍCULO O AMBOS)
+// EXPLORER DE ARTÍCULOS (FILTRAR POR TIPO DE LISTA, ARTÍCULO O AMBOS, PAGINADO)
 // =========================================================
 async function abrirExplorerArticulos(contexto = 'filtro', textoInicial = '') {
     contextoExplorerArticulos = contexto;
@@ -787,7 +831,6 @@ async function ejecutarBusquedaExplorerArticulos() {
     const listaVal = selectExplorerArticuloLista?.value || '';
     const listaPrecioId = listaVal ? parseInt(listaVal, 10) : undefined;
     const textoArticulo = inputExplorerArticuloTexto?.value.trim() || '';
-    const esSugerenciaInicial = !textoArticulo;
     let resultados = [];
     try {
         resultados = await facturaService.obtenerArticulosPorListaPrecio(listaPrecioId, textoArticulo);
@@ -802,11 +845,23 @@ async function ejecutarBusquedaExplorerArticulos() {
             return coincideLista && coincideTexto;
         });
     }
-    renderizarTablaExplorerArticulos(resultados, esSugerenciaInicial);
+    articulosExplorerFiltrados = resultados || [];
+    paginaExplorerArticulos = 0;
+    renderizarTablaExplorerArticulos();
 }
-function renderizarTablaExplorerArticulos(instancias, esSugerenciaInicial = false) {
+function irAPaginaExplorerArticulos(nuevaPagina) {
+    const totalPaginasExp = Math.ceil(articulosExplorerFiltrados.length / TAMANIO_PAGINA_EXPLORER);
+    if (nuevaPagina < 0 || (totalPaginasExp > 0 && nuevaPagina >= totalPaginasExp) || nuevaPagina === paginaExplorerArticulos) {
+        return;
+    }
+    paginaExplorerArticulos = nuevaPagina;
+    renderizarTablaExplorerArticulos();
+}
+function renderizarTablaExplorerArticulos() {
     tablaExplorerArticulosBody.innerHTML = '';
-    if (!instancias || instancias.length === 0) {
+    const total = articulosExplorerFiltrados.length;
+    const totalPag = Math.ceil(total / TAMANIO_PAGINA_EXPLORER);
+    if (total === 0) {
         tablaExplorerArticulosBody.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center text-muted">
@@ -814,18 +869,11 @@ function renderizarTablaExplorerArticulos(instancias, esSugerenciaInicial = fals
                 </td>
             </tr>
         `;
+        renderizarPaginacionExplorer(0, 0, 0, 0, expArtPagTexto, btnExpArtFirst, btnExpArtPrev, expArtPagNumeros, btnExpArtNext, btnExpArtLast, 'artículos', irAPaginaExplorerArticulos);
         return;
     }
-    if (esSugerenciaInicial) {
-        const trHint = document.createElement('tr');
-        trHint.innerHTML = `
-            <td colspan="5" class="explorer-hint-cell">
-                💡 Sugerencias iniciales — empiece a escribir nombre o código del artículo arriba para autocompletar.
-            </td>
-        `;
-        tablaExplorerArticulosBody.appendChild(trHint);
-    }
-    const listaMostrar = esSugerenciaInicial ? instancias.slice(0, 2) : instancias;
+    const desdeIdx = paginaExplorerArticulos * TAMANIO_PAGINA_EXPLORER;
+    const listaMostrar = articulosExplorerFiltrados.slice(desdeIdx, desdeIdx + TAMANIO_PAGINA_EXPLORER);
     listaMostrar.forEach(lpa => {
         const codigo = lpa.articuloCodigo || '-';
         const nombre = lpa.articuloDenominacion || '-';
@@ -849,6 +897,47 @@ function renderizarTablaExplorerArticulos(instancias, esSugerenciaInicial = fals
         });
         tablaExplorerArticulosBody.appendChild(tr);
     });
+    renderizarPaginacionExplorer(paginaExplorerArticulos, listaMostrar.length, total, totalPag, expArtPagTexto, btnExpArtFirst, btnExpArtPrev, expArtPagNumeros, btnExpArtNext, btnExpArtLast, 'artículos', irAPaginaExplorerArticulos);
+}
+function renderizarPaginacionExplorer(currentPage, currentCount, totalElements, totalPages, textoEl, btnFirst, btnPrev, numerosContainer, btnNext, btnLast, etiqueta, onGoToPage) {
+    if (textoEl) {
+        if (totalElements === 0 || currentCount === 0) {
+            textoEl.innerText = `Mostrando 0 de 0 ${etiqueta}`;
+        }
+        else {
+            const desde = currentPage * TAMANIO_PAGINA_EXPLORER + 1;
+            const hasta = desde + currentCount - 1;
+            textoEl.innerText = `Mostrando ${desde} - ${hasta} de ${totalElements} ${etiqueta} (Pág. ${currentPage + 1}/${Math.max(1, totalPages)})`;
+        }
+    }
+    const esPrimera = currentPage <= 0;
+    const esUltima = totalPages === 0 || currentPage >= totalPages - 1;
+    if (btnFirst)
+        btnFirst.disabled = esPrimera;
+    if (btnPrev)
+        btnPrev.disabled = esPrimera;
+    if (btnNext)
+        btnNext.disabled = esUltima;
+    if (btnLast)
+        btnLast.disabled = esUltima;
+    if (numerosContainer) {
+        numerosContainer.innerHTML = '';
+        const total = Math.max(1, totalPages);
+        const maxBotones = 5;
+        let inicio = Math.max(0, currentPage - Math.floor(maxBotones / 2));
+        let fin = Math.min(total - 1, inicio + maxBotones - 1);
+        if (fin - inicio + 1 < maxBotones) {
+            inicio = Math.max(0, fin - maxBotones + 1);
+        }
+        for (let i = inicio; i <= fin; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn btn-page btn-sm ${i === currentPage ? 'active' : ''}`;
+            btn.innerText = (i + 1).toString();
+            btn.addEventListener('click', () => onGoToPage(i));
+            numerosContainer.appendChild(btn);
+        }
+    }
 }
 async function seleccionarArticuloDesdeExplorer(lpa) {
     if (contextoExplorerArticulos === 'factura') {
@@ -859,9 +948,8 @@ async function seleccionarArticuloDesdeExplorer(lpa) {
         const existeLpa = catalogoListaPrecioArticulos.some(x => x.id === lpa.id);
         if (!existeLpa) {
             catalogoListaPrecioArticulos.push(lpa);
-            actualizarOpcionesArticulosSegunLista(listaPrecioSeleccionadaId);
         }
-        comboItemArticulo.setSelectedById(lpa.id, true);
+        seleccionarArticuloEnFactura(lpa);
         cerrarExplorerArticulos();
         inputItemCant?.focus();
         return;
@@ -931,7 +1019,7 @@ async function manejarGuardarNuevoCliente(e) {
         poblarOpcionesComboboxes();
         // Si el formulario de factura está abierto, seleccionar automáticamente el nuevo cliente
         if (modalFactura && modalFactura.style.display !== 'none') {
-            comboAltaCliente.setSelectedById(clienteCreado.id, true);
+            seleccionarClienteEnFactura(clienteCreado, false);
             if (modalExplorerClientes && modalExplorerClientes.style.display !== 'none' && contextoExplorerClientes === 'factura') {
                 cerrarExplorerClientes();
             }
@@ -1044,14 +1132,13 @@ async function manejarGuardarNuevoArticulo(e) {
         else {
             siguienteCodigoArticuloCache = calcularSiguienteCodigoLocal();
         }
-        actualizarOpcionesArticulosSegunLista(listaPrecioSeleccionadaId);
         // Si el formulario de factura está abierto, seleccionar automáticamente el nuevo artículo según la lista activa
         if (modalFactura && modalFactura.style.display !== 'none') {
             const lpaParaListaActiva = listaPrecioSeleccionadaId === 2
                 ? creado.lpaMayorista
                 : creado.lpaMinorista;
             if (lpaParaListaActiva) {
-                comboItemArticulo.setSelectedById(lpaParaListaActiva.id, true);
+                seleccionarArticuloEnFactura(lpaParaListaActiva);
             }
             if (modalExplorerArticulos && modalExplorerArticulos.style.display !== 'none' && contextoExplorerArticulos === 'factura') {
                 cerrarExplorerArticulos();
@@ -1088,9 +1175,7 @@ async function cambiarListaPrecioActiva(nuevaListaPrecioId) {
     catch (e) {
         console.warn('Filtrando instancias de ListaPrecioArticulo en memoria:', e);
     }
-    actualizarOpcionesArticulosSegunLista(nuevaListaPrecioId);
-    lpaSeleccionadoActual = null;
-    comboItemArticulo.clear();
+    seleccionarArticuloEnFactura(null);
     inputItemDesc.value = '';
     if (detallesEnMemoria.length > 0) {
         const instanciasDeLista = obtenerInstanciasLpaPorLista(nuevaListaPrecioId);
@@ -1115,27 +1200,6 @@ function obtenerInstanciasLpaPorLista(listaPrecioId) {
     return catalogoListaPrecioArticulos.filter(lpa => lpa.listaPrecioId === listaPrecioId);
 }
 /**
- * Actualiza el desplegable de Artículo con las instancias de ListaPrecioArticulo que pertenecen
- * a la lista de precios indicada (1 = Minorista, 2 = Mayorista).
- * En el desplegable se muestra únicamente el nombre del artículo y su precio, sin mostrar IDs internos ni FKs.
- */
-function actualizarOpcionesArticulosSegunLista(listaPrecioId) {
-    const instancias = obtenerInstanciasLpaPorLista(listaPrecioId);
-    const tipoTexto = listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
-    comboItemArticulo.setOptions(instancias.map(lpa => {
-        const precioFormateado = lpa.precioVenta.toLocaleString('es-AR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-        return {
-            id: lpa.id,
-            label: lpa.articuloDenominacion,
-            subtitle: `Precio ${tipoTexto}: $ ${precioFormateado}`,
-            raw: lpa
-        };
-    }));
-}
-/**
  * Consulta el próximo número de comprobante/ID en la BD y lo refleja en el formulario
  */
 async function actualizarSiguienteNumero() {
@@ -1157,10 +1221,10 @@ async function abrirFormularioAlta() {
     inputFacturaId.value = '';
     detallesEnMemoria = [];
     lpaSeleccionadoActual = null;
-    comboAltaCliente.clear();
+    seleccionarClienteEnFactura(null, false);
     comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
     comboAltaPuntoVenta.clear();
-    comboItemArticulo.clear();
+    seleccionarArticuloEnFactura(null);
     // Por defecto: Precio Lista = Minorista (FK = 1) y Tipo de Moneda = Pesos Argentinos (ID = 1)
     comboAltaListaPrecio.setSelectedById(1, false);
     await cambiarListaPrecioActiva(1);
@@ -1189,7 +1253,7 @@ async function abrirFormularioEdicion(facturaResumen) {
         formFactura.reset();
         inputFacturaId.value = factura.id.toString();
         lpaSeleccionadoActual = null;
-        modalFacturaTitulo.innerText = `Editar Factura N° ${factura.numeroFactura}`;
+        modalFacturaTitulo.innerText = `Editar Factura ${factura.numeroFactura ? 'N° ' + factura.numeroFactura : '(Pendiente)'}`;
         btnSubmitFactura.innerText = 'Guardar Cambios de Factura';
         btnSubmitFactura.classList.remove('btn-success');
         btnSubmitFactura.classList.add('btn-primary');
@@ -1204,10 +1268,17 @@ async function abrirFormularioEdicion(facturaResumen) {
         comboAltaListaPrecio.setSelectedById(listaIdFactura, false);
         await cambiarListaPrecioActiva(listaIdFactura);
         if (factura.clienteId) {
-            comboAltaCliente.setSelectedById(factura.clienteId, false);
+            const cliEncontrado = catalogoClientes.find(c => c.id === factura.clienteId) || {
+                id: factura.clienteId,
+                nombre: factura.clienteDenominacion || '',
+                denominacion: factura.clienteDenominacion || '',
+                cuit: factura.clienteCuit || '',
+                cuitCuil: factura.clienteCuit || ''
+            };
+            seleccionarClienteEnFactura(cliEncontrado, false);
         }
         else {
-            comboAltaCliente.clear();
+            seleccionarClienteEnFactura(null, false);
         }
         comboAltaCondicionIva.setSelectedById(factura.condicionIvaId ?? obtenerIdCondicionIvaConsumidorFinal(), false);
         comboAltaPuntoVenta.setSelectedById(factura.puntoVentaId ?? 1, false);
@@ -1255,15 +1326,15 @@ function cerrarModalFactura() {
     formFactura.reset();
     inputFacturaId.value = '';
     detallesEnMemoria = [];
-    lpaSeleccionadoActual = null;
+    seleccionarClienteEnFactura(null, false);
+    seleccionarArticuloEnFactura(null);
     renderizarTablaDetalles();
 }
 function agregarRenglonEnMemoria() {
-    const opcionSeleccionada = comboItemArticulo.getSelectedOption();
-    const lpa = opcionSeleccionada ? opcionSeleccionada.raw : lpaSeleccionadoActual;
+    const lpa = lpaSeleccionadoActual;
     if (!lpa) {
-        alert('Debe seleccionar un artículo válido de la lista desplegable.');
-        inputItemArticuloId.focus();
+        alert('Debe seleccionar un artículo haciendo clic en el campo "Artículo".');
+        abrirExplorerArticulos('factura');
         return;
     }
     const cantidad = parseFloat(inputItemCant.value);
@@ -1292,12 +1363,10 @@ function agregarRenglonEnMemoria() {
         porcentajeDescuento: descuento
     });
     renderizarTablaDetalles();
-    lpaSeleccionadoActual = null;
-    comboItemArticulo.clear();
+    seleccionarArticuloEnFactura(null);
     inputItemDesc.value = '';
     inputItemCant.value = '1';
     inputItemBonif.value = '0';
-    inputItemArticuloId.focus();
 }
 function renderizarTablaDetalles() {
     tablaDetallesBody.innerHTML = '';
@@ -1364,9 +1433,14 @@ async function manejarGuardarFactura(e) {
         alert('Debe cargar al menos un renglón antes de guardar la factura.');
         return;
     }
-    const clienteId = comboAltaCliente.getSelectedId();
-    const condicionIvaSeleccionada = comboAltaCondicionIva.getSelectedId();
-    const condicionIvaId = condicionIvaSeleccionada ?? (!clienteId ? obtenerIdCondicionIvaConsumidorFinal() : undefined);
+    const clienteId = clienteSeleccionadoFacturaId ?? undefined;
+    // Si el usuario no eligió ningún cliente (queda como Consumidor Final), la Condición de IVA se fuerza siempre a Consumidor Final
+    if (!clienteId) {
+        comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+    }
+    const condicionIvaId = !clienteId
+        ? obtenerIdCondicionIvaConsumidorFinal()
+        : comboAltaCondicionIva.getSelectedId();
     const puntoVentaId = comboAltaPuntoVenta.getSelectedId();
     const tipoMonedaId = comboAltaTipoMoneda.getSelectedId(1) ?? 1;
     if (!condicionIvaId) {
@@ -1399,9 +1473,9 @@ async function manejarGuardarFactura(e) {
             await facturaService.crearFactura(payload);
             alert('¡Factura guardada como pendiente! Podés editarla o declararla con el botón "Informar".');
             cerrarModalFactura();
-            // Destildamos el filtro "Declaradas en ARCA" para que el usuario vea inmediatamente la factura recién creada
-            if (filtroArcaInformadas) {
-                filtroArcaInformadas.checked = false;
+            // Cambiamos el filtro Estado a "PENDIENTE" para que el usuario vea inmediatamente la factura recién creada
+            if (filtroEstado) {
+                filtroEstado.value = 'PENDIENTE';
             }
             await cargarListadoFacturas(0);
         }
@@ -1447,19 +1521,23 @@ function renderizarTablaFacturas(facturas) {
         const total = typeof f.importeFinal === 'number' ? f.importeFinal : 0;
         const importeFormateado = `$ ${total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         const tieneCae = Boolean(f.cae && f.cae.trim() !== '');
+        const esAnulada = (f.estado || '').toUpperCase() === 'ANULADA' || (filtroEstado?.value === 'ANULADA');
         const nroMostrar = f.numeroFactura ? `#${f.numeroFactura}` : `Pendiente`;
+        const tagAnulada = esAnulada ? `<span class="badge-anulada" title="Comprobante anulado">ANULADA</span>` : '';
         const badgeCae = tieneCae
-            ? `<div style="margin-top:3px;"><span class="badge-lista" title="CAE autorizado en ARCA/AFIP">CAE: ${f.cae}</span></div>`
-            : `<div style="margin-top:3px;"><span class="text-muted" style="font-size:0.72rem;">No informada a ARCA</span></div>`;
-        const btnInformarArcaHtml = !tieneCae
+            ? `<div style="margin-top:3px;"><span class="badge-lista" title="CAE autorizado en ARCA/AFIP">CAE: ${f.cae}</span>${tagAnulada}</div>`
+            : `<div style="margin-top:3px;"><span class="text-muted" style="font-size:0.72rem;">No informada a ARCA</span>${tagAnulada}</div>`;
+        const btnInformarArcaHtml = (!tieneCae && !esAnulada)
             ? `<button type="button" class="btn btn-warning btn-sm btn-informar-arca" title="Informar factura a ARCA">📤 Informar</button>`
             : '';
-        const btnEditarHtml = tieneCae
-            ? `<button type="button" class="btn btn-editar btn-sm" disabled title="No editable: factura ya declarada en ARCA (posee CAE)">🔒 Editar</button>`
+        const btnEditarHtml = (tieneCae || esAnulada)
+            ? `<button type="button" class="btn btn-editar btn-sm" disabled title="${esAnulada ? 'No editable: factura anulada' : 'No editable: factura ya declarada en ARCA (posee CAE)'}">🔒 Editar</button>`
             : `<button type="button" class="btn btn-editar btn-sm">✏️ Editar</button>`;
-        const btnBajaHtml = tieneCae
-            ? `<button type="button" class="btn btn-danger btn-sm btn-anular" title="Anular factura declarada en ARCA">🚫 Anular</button>`
-            : `<button type="button" class="btn btn-danger btn-sm btn-eliminar" title="Eliminar factura pendiente">🗑️ Eliminar</button>`;
+        const btnBajaHtml = esAnulada
+            ? `<button type="button" class="btn btn-danger btn-sm" disabled title="Esta factura ya se encuentra anulada">🚫 Anulada</button>`
+            : (tieneCae
+                ? `<button type="button" class="btn btn-danger btn-sm btn-anular" title="Anular factura declarada en ARCA">🚫 Anular</button>`
+                : `<button type="button" class="btn btn-danger btn-sm btn-eliminar" title="Eliminar factura pendiente">🗑️ Eliminar</button>`);
         const fila = document.createElement('tr');
         fila.innerHTML = `
             <td><strong>${nroMostrar}</strong>${badgeCae}</td>
@@ -1479,7 +1557,7 @@ function renderizarTablaFacturas(facturas) {
             </td>
         `;
         fila.querySelector('.btn-pdf-factura')?.addEventListener('click', () => descargarPdfIndividual(f.id, f.numeroFactura));
-        if (!tieneCae) {
+        if (!tieneCae && !esAnulada) {
             fila.querySelector('.btn-informar-arca')?.addEventListener('click', (ev) => {
                 const btn = ev.currentTarget;
                 ejecutarInformarFacturaArca(f.id, btn);
@@ -1487,7 +1565,7 @@ function renderizarTablaFacturas(facturas) {
             fila.querySelector('.btn-editar')?.addEventListener('click', () => abrirFormularioEdicion(f));
             fila.querySelector('.btn-eliminar')?.addEventListener('click', () => ejecutarEliminarFactura(f.id, f.numeroFactura));
         }
-        else {
+        else if (tieneCae && !esAnulada) {
             fila.querySelector('.btn-anular')?.addEventListener('click', () => ejecutarAnularFactura(f.id, f.numeroFactura));
         }
         tablaFacturasBody.appendChild(fila);
@@ -1552,8 +1630,8 @@ async function ejecutarInformarFacturaArca(id, btn) {
     try {
         const autorizada = await facturaService.informarFacturaArca(id);
         alert(`¡Factura informada y autorizada por ARCA con éxito!\n\nN° Comprobante asignado: #${autorizada.numeroFactura}\nCAE: ${autorizada.cae}`);
-        if (filtroArcaInformadas) {
-            filtroArcaInformadas.checked = true;
+        if (filtroEstado) {
+            filtroEstado.value = 'INFORMADA';
         }
         await cargarListadoFacturas(0);
     }
@@ -1607,8 +1685,8 @@ function limpiarFiltros() {
     if (btnLimpiarFiltroArticulo) {
         btnLimpiarFiltroArticulo.style.display = 'none';
     }
-    if (filtroArcaInformadas) {
-        filtroArcaInformadas.checked = true;
+    if (filtroEstado) {
+        filtroEstado.value = 'INFORMADA';
     }
     comboFiltroCondicionIva?.clear();
     cargarListadoFacturas(0);
@@ -1632,8 +1710,8 @@ function obtenerFiltrosActuales() {
             filtros.condicionIvaId = idCond;
         }
     }
-    if (filtroArcaInformadas) {
-        filtros.informadaArca = filtroArcaInformadas.checked;
+    if (filtroEstado && filtroEstado.value) {
+        filtros.estado = filtroEstado.value;
     }
     return filtros;
 }

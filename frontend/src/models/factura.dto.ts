@@ -153,6 +153,7 @@ export interface FacturaFiltrosDTO {
     condicionIvaId?: number;
     listaPrecioArticuloId?: number;
     informadaArca?: boolean;
+    estado?: string;
     page?: number;
     size?: number;
 }

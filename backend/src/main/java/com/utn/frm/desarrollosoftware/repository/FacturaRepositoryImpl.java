@@ -29,7 +29,8 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Date fechaHasta,
             Long condicionIvaId,
             Long listaPrecioArticuloId,
-            Boolean informadaArca) {
+            Boolean informadaArca,
+            String estado) {
         Map<String, Object> params = new HashMap<>();
         String whereClause = construirFiltrosWhere(
                 numeroFactura,
@@ -39,13 +40,14 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 condicionIvaId,
                 listaPrecioArticuloId,
                 informadaArca,
+                estado,
                 params
         );
 
         String jpql = "SELECT new com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO(" +
                 " f.id, f.numero, f.fechaEmision, COALESCE(c.denominacion, 'Consumidor Final'), " +
                 " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d), " +
-                " f.cae, f.caeFechaVencimiento, f.resultadoAfip" +
+                " f.cae, f.caeFechaVencimiento, f.resultadoAfip, f.estado" +
                 ") " +
                 "FROM FacturaVenta f " +
                 "LEFT JOIN f.cliente c " +
@@ -54,7 +56,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 "LEFT JOIN f.detalles d " +
                 whereClause +
                 "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal, " +
-                "f.cae, f.caeFechaVencimiento, f.resultadoAfip " +
+                "f.cae, f.caeFechaVencimiento, f.resultadoAfip, f.estado " +
                 "ORDER BY f.fechaEmision DESC, f.numero DESC";
 
         TypedQuery<FacturaReporteDTO> query = em.createQuery(jpql, FacturaReporteDTO.class);
@@ -72,6 +74,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Long condicionIvaId,
             Long listaPrecioArticuloId,
             Boolean informadaArca,
+            String estado,
             Pageable pageable) {
         Map<String, Object> params = new HashMap<>();
         String whereClause = construirFiltrosWhere(
@@ -82,13 +85,14 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 condicionIvaId,
                 listaPrecioArticuloId,
                 informadaArca,
+                estado,
                 params
         );
 
         String jpql = "SELECT new com.utn.frm.desarrollosoftware.dto.FacturaReporteDTO(" +
                 " f.id, f.numero, f.fechaEmision, COALESCE(c.denominacion, 'Consumidor Final'), " +
                 " ci.denominacion, pv.descripcion, f.importeTotal, COUNT(d), " +
-                " f.cae, f.caeFechaVencimiento, f.resultadoAfip" +
+                " f.cae, f.caeFechaVencimiento, f.resultadoAfip, f.estado" +
                 ") " +
                 "FROM FacturaVenta f " +
                 "LEFT JOIN f.cliente c " +
@@ -97,7 +101,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
                 "LEFT JOIN f.detalles d " +
                 whereClause +
                 "GROUP BY f.id, f.numero, f.fechaEmision, c.denominacion, ci.denominacion, pv.descripcion, f.importeTotal, " +
-                "f.cae, f.caeFechaVencimiento, f.resultadoAfip " +
+                "f.cae, f.caeFechaVencimiento, f.resultadoAfip, f.estado " +
                 "ORDER BY f.fechaEmision DESC, f.numero DESC";
 
         TypedQuery<FacturaReporteDTO> query = em.createQuery(jpql, FacturaReporteDTO.class);
@@ -131,8 +135,31 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             Long condicionIvaId,
             Long listaPrecioArticuloId,
             Boolean informadaArca,
+            String estado,
             Map<String, Object> params) {
-        StringBuilder where = new StringBuilder("WHERE f.fechaBaja IS NULL ");
+        StringBuilder where = new StringBuilder();
+
+        if (estado != null && !estado.trim().isEmpty()) {
+            String est = estado.trim().toUpperCase();
+            if ("ANULADA".equals(est)) {
+                where.append("WHERE (f.fechaBaja IS NOT NULL OR UPPER(f.estado) = 'ANULADA') AND f.cae IS NOT NULL AND TRIM(f.cae) <> '' ");
+            } else if ("INFORMADA".equals(est) || "EMITIDA".equals(est)) {
+                where.append("WHERE f.fechaBaja IS NULL AND f.cae IS NOT NULL AND TRIM(f.cae) <> '' ");
+            } else if ("PENDIENTE".equals(est) || "PENDIENTE_ARCA".equals(est)) {
+                where.append("WHERE f.fechaBaja IS NULL AND (f.cae IS NULL OR TRIM(f.cae) = '') ");
+            } else {
+                where.append("WHERE f.fechaBaja IS NULL ");
+            }
+        } else {
+            where.append("WHERE f.fechaBaja IS NULL ");
+            if (informadaArca != null) {
+                if (informadaArca) {
+                    where.append("AND f.cae IS NOT NULL AND TRIM(f.cae) <> '' ");
+                } else {
+                    where.append("AND (f.cae IS NULL OR TRIM(f.cae) = '') ");
+                }
+            }
+        }
 
         if (numeroFactura != null) {
             where.append("AND f.numero = :numeroFactura ");
@@ -163,13 +190,6 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             where.append("AND EXISTS (SELECT 1 FROM FacturaVentaDetalle dFiltro " +
                          "WHERE dFiltro.factura = f AND dFiltro.listaPrecioArticulo.id = :listaPrecioArticuloId) ");
             params.put("listaPrecioArticuloId", listaPrecioArticuloId);
-        }
-        if (informadaArca != null) {
-            if (informadaArca) {
-                where.append("AND f.cae IS NOT NULL AND TRIM(f.cae) <> '' ");
-            } else {
-                where.append("AND (f.cae IS NULL OR TRIM(f.cae) = '') ");
-            }
         }
 
         return where.toString();
