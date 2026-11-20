@@ -443,6 +443,101 @@ input[type="checkbox"] {
     padding-right: 36px !important;
 }
 
+.combobox-with-explorer .combobox-input {
+    padding-right: 64px !important;
+}
+
+.label-hint {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--teal-dark);
+}
+
+.combobox-explorer-btn {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+    bottom: 3px;
+    width: 30px;
+    border: 1px solid var(--ink);
+    background: var(--yellow);
+    box-shadow: var(--bevel-out);
+    color: var(--ink);
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+
+.combobox-explorer-btn:hover {
+    background-color: var(--teal);
+    color: #ffffff;
+}
+
+.combobox-explorer-btn:active {
+    box-shadow: var(--bevel-in);
+}
+
+.combobox-clear-btn {
+    position: absolute;
+    right: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 1px 5px;
+    box-shadow: var(--bevel-out);
+}
+
+.combobox-clear-btn:hover {
+    color: #ffffff;
+    background-color: var(--danger);
+}
+
+.combobox-suggestion-header {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: var(--navy-50);
+    color: var(--navy-800);
+    border-bottom: 1px solid var(--ink);
+    cursor: default;
+}
+
+.combobox-explorer-action {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--navy-800);
+    background-color: #fff9db;
+    border-top: 2px solid var(--ink);
+    cursor: pointer;
+    text-align: center;
+}
+
+.combobox-explorer-action:hover {
+    background-color: var(--teal);
+    color: #ffffff;
+}
+
+.explorer-hint-cell {
+    background-color: #fff9db;
+    color: var(--navy-800);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 7px 12px !important;
+}
+
 .combobox-arrow {
     position: absolute;
     right: 3px;

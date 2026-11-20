@@ -139,7 +139,7 @@ public class FacturaRepositoryImpl implements FacturaRepositoryCustom {
             params.put("numeroFactura", numeroFactura);
         }
         if (cliente != null && !cliente.trim().isEmpty()) {
-            where.append("AND (LOWER(c.denominacion) LIKE LOWER(:cliente) OR c.cuitCuil LIKE :cliente) ");
+            where.append("AND (LOWER(COALESCE(c.denominacion, 'Consumidor Final')) LIKE LOWER(:cliente) OR c.cuitCuil LIKE :cliente) ");
             params.put("cliente", "%" + cliente.trim() + "%");
         }
         if (fechaDesde != null) {

@@ -42,6 +42,9 @@ let listaPrecioSeleccionadaId: number = 1;
 let lpaSeleccionadoActual: ListaPrecioArticuloDTO | null = null;
 // ID de la instancia ListaPrecioArticulo seleccionada en el filtro de búsqueda de facturas
 let filtroListaPrecioArticuloId: number | undefined = undefined;
+// Contexto desde el cual se abre cada Explorer ('filtro' de búsqueda principal o 'factura' en alta/edición)
+let contextoExplorerClientes: 'filtro' | 'factura' = 'filtro';
+let contextoExplorerArticulos: 'filtro' | 'factura' = 'filtro';
 
 // Estado de Paginación
 let paginaActual = 0;
@@ -71,27 +74,41 @@ interface ComboboxOption<T = any> {
     raw: T;             // Objeto original (ej. Cliente, ListaPrecio, ListaPrecioArticulo)
 }
 
+interface ComboboxConfig {
+    maxInitialSuggestions?: number;
+    explorerLabel?: string;
+    onOpenExplorer?: (terminoActual: string) => void;
+    onClear?: () => void;
+}
+
 class SearchableCombobox<T = any> {
     private container: HTMLElement;
     private input: HTMLInputElement;
-    private arrowBtn: HTMLButtonElement;
+    private arrowBtn: HTMLButtonElement | null;
+    private explorerBtn: HTMLButtonElement | null;
+    private clearBtn: HTMLButtonElement | null;
     private dropdown: HTMLUListElement;
     private options: ComboboxOption<T>[] = [];
     private filteredOptions: ComboboxOption<T>[] = [];
     private selectedOption: ComboboxOption<T> | null = null;
     private highlightedIndex: number = -1;
+    private isShowingInitialSuggestions: boolean = false;
     private onSelectCallback?: (option: ComboboxOption<T>) => void;
+    private config?: ComboboxConfig;
 
-    constructor(containerId: string, onSelect?: (option: ComboboxOption<T>) => void) {
+    constructor(containerId: string, onSelect?: (option: ComboboxOption<T>) => void, config?: ComboboxConfig) {
         const el = document.getElementById(containerId);
         if (!el) {
             throw new Error(`No se encontró el contenedor de combobox #${containerId}`);
         }
         this.container = el;
         this.input = el.querySelector('.combobox-input') as HTMLInputElement;
-        this.arrowBtn = el.querySelector('.combobox-arrow') as HTMLButtonElement;
+        this.arrowBtn = el.querySelector('.combobox-arrow') as HTMLButtonElement | null;
+        this.explorerBtn = el.querySelector('.combobox-explorer-btn') as HTMLButtonElement | null;
+        this.clearBtn = el.querySelector('.combobox-clear-btn') as HTMLButtonElement | null;
         this.dropdown = el.querySelector('.combobox-dropdown') as HTMLUListElement;
         this.onSelectCallback = onSelect;
+        this.config = config;
 
         this.inicializarEventos();
     }
@@ -109,6 +126,7 @@ class SearchableCombobox<T = any> {
 
         this.input.addEventListener('input', () => {
             this.selectedOption = null;
+            this.actualizarBotonLimpiar();
             this.abrirDesplegable(true);
         });
 
@@ -120,6 +138,21 @@ class SearchableCombobox<T = any> {
                 this.input.focus();
                 this.abrirDesplegable(false);
             }
+        });
+
+        this.explorerBtn?.addEventListener('mousedown', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const textoParcial = this.selectedOption ? '' : this.input.value.trim();
+            this.cerrarDesplegable();
+            this.config?.onOpenExplorer?.(textoParcial);
+        });
+
+        this.clearBtn?.addEventListener('mousedown', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.clear();
+            this.config?.onClear?.();
         });
 
         this.input.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -142,9 +175,14 @@ class SearchableCombobox<T = any> {
                     e.preventDefault();
                     if (this.highlightedIndex >= 0 && this.highlightedIndex < this.filteredOptions.length) {
                         this.seleccionarOpcion(this.filteredOptions[this.highlightedIndex]);
-                    } else if (this.filteredOptions.length === 1) {
+                    } else if (this.filteredOptions.length >= 1) {
                         this.seleccionarOpcion(this.filteredOptions[0]);
                     }
+                }
+            } else if (e.key === 'Tab') {
+                if (this.dropdown.classList.contains('open') && !this.isShowingInitialSuggestions && this.filteredOptions.length > 0) {
+                    const idx = this.highlightedIndex >= 0 ? this.highlightedIndex : 0;
+                    this.seleccionarOpcion(this.filteredOptions[idx]);
                 }
             } else if (e.key === 'Escape') {
                 if (this.dropdown.classList.contains('open')) {
@@ -162,6 +200,12 @@ class SearchableCombobox<T = any> {
         });
     }
 
+    private actualizarBotonLimpiar(): void {
+        if (!this.clearBtn) return;
+        const tieneValor = this.input.value.trim() !== '' || this.selectedOption !== null;
+        this.clearBtn.style.display = tieneValor ? 'inline-block' : 'none';
+    }
+
     public setOptions(options: ComboboxOption<T>[]): void {
         this.options = options;
         this.filteredOptions = [...options];
@@ -169,6 +213,7 @@ class SearchableCombobox<T = any> {
             const actualizada = this.options.find(o => o.id === this.selectedOption!.id);
             this.selectedOption = actualizada || null;
         }
+        this.actualizarBotonLimpiar();
     }
 
     public setSelectedById(id: number | null | undefined, triggerCallback = false): void {
@@ -180,6 +225,7 @@ class SearchableCombobox<T = any> {
         if (encontrada) {
             this.selectedOption = encontrada;
             this.input.value = encontrada.label;
+            this.actualizarBotonLimpiar();
             if (triggerCallback && this.onSelectCallback) {
                 this.onSelectCallback(encontrada);
             }
@@ -201,6 +247,7 @@ class SearchableCombobox<T = any> {
         this.selectedOption = null;
         this.input.value = '';
         this.highlightedIndex = -1;
+        this.actualizarBotonLimpiar();
         this.cerrarDesplegable();
     }
 
@@ -208,15 +255,21 @@ class SearchableCombobox<T = any> {
         const texto = normalizarTexto(this.input.value);
         if (!texto) {
             this.selectedOption = null;
+            this.actualizarBotonLimpiar();
             return;
         }
         if (this.selectedOption && normalizarTexto(this.selectedOption.label) === texto) {
+            this.actualizarBotonLimpiar();
             return;
         }
         const exacta = this.options.find(o => normalizarTexto(o.label) === texto);
         if (exacta) {
             this.selectedOption = exacta;
             this.input.value = exacta.label;
+            this.actualizarBotonLimpiar();
+            if (this.onSelectCallback) {
+                this.onSelectCallback(exacta);
+            }
             return;
         }
         const parcial = this.options.find(
@@ -225,19 +278,33 @@ class SearchableCombobox<T = any> {
         if (parcial) {
             this.selectedOption = parcial;
             this.input.value = parcial.label;
+            this.actualizarBotonLimpiar();
+            if (this.onSelectCallback) {
+                this.onSelectCallback(parcial);
+            }
         }
     }
 
     private abrirDesplegable(filtrarPorInput: boolean): void {
         const termino = filtrarPorInput ? normalizarTexto(this.input.value) : '';
+        const maxSugerencias = this.config?.maxInitialSuggestions;
 
         if (!termino) {
-            this.filteredOptions = [...this.options];
+            if (maxSugerencias !== undefined && maxSugerencias > 0) {
+                this.isShowingInitialSuggestions = true;
+                this.filteredOptions = this.options.slice(0, maxSugerencias);
+            } else {
+                this.isShowingInitialSuggestions = false;
+                this.filteredOptions = [...this.options];
+            }
+            this.highlightedIndex = -1;
         } else {
+            this.isShowingInitialSuggestions = false;
             this.filteredOptions = this.options.filter(
                 o => normalizarTexto(o.label).includes(termino)
                     || normalizarTexto(o.subtitle || '').includes(termino)
             );
+            this.highlightedIndex = this.filteredOptions.length > 0 ? 0 : -1;
         }
 
         this.renderizarOpciones();
@@ -252,41 +319,66 @@ class SearchableCombobox<T = any> {
     private renderizarOpciones(): void {
         this.dropdown.innerHTML = '';
 
+        if (this.config?.maxInitialSuggestions !== undefined) {
+            const headerLi = document.createElement('li');
+            headerLi.className = 'combobox-suggestion-header';
+            headerLi.innerText = this.isShowingInitialSuggestions
+                ? '💡 Sugerencia (escriba para autocompletar):'
+                : '🔎 Coincidencias al escribir:';
+            headerLi.addEventListener('mousedown', (e: MouseEvent) => e.preventDefault());
+            this.dropdown.appendChild(headerLi);
+        }
+
         if (this.filteredOptions.length === 0) {
             const emptyLi = document.createElement('li');
             emptyLi.className = 'combobox-empty';
             emptyLi.innerText = 'No se encontraron coincidencias';
             this.dropdown.appendChild(emptyLi);
-            return;
+        } else {
+            this.filteredOptions.forEach((opt, idx) => {
+                const li = document.createElement('li');
+                li.className = 'combobox-option';
+                if (this.selectedOption && this.selectedOption.id === opt.id) {
+                    li.classList.add('selected');
+                    this.highlightedIndex = idx;
+                }
+                if (idx === this.highlightedIndex) {
+                    li.classList.add('highlighted');
+                }
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'combobox-option-title';
+                titleDiv.innerText = opt.label;
+                li.appendChild(titleDiv);
+
+                if (opt.subtitle) {
+                    const subDiv = document.createElement('div');
+                    subDiv.className = 'combobox-option-subtitle';
+                    subDiv.innerText = opt.subtitle;
+                    li.appendChild(subDiv);
+                }
+
+                li.addEventListener('mousedown', (e: MouseEvent) => {
+                    e.preventDefault();
+                    this.seleccionarOpcion(opt);
+                });
+
+                this.dropdown.appendChild(li);
+            });
         }
 
-        this.filteredOptions.forEach((opt, idx) => {
-            const li = document.createElement('li');
-            li.className = 'combobox-option';
-            if (this.selectedOption && this.selectedOption.id === opt.id) {
-                li.classList.add('selected');
-                this.highlightedIndex = idx;
-            }
-
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'combobox-option-title';
-            titleDiv.innerText = opt.label;
-            li.appendChild(titleDiv);
-
-            if (opt.subtitle) {
-                const subDiv = document.createElement('div');
-                subDiv.className = 'combobox-option-subtitle';
-                subDiv.innerText = opt.subtitle;
-                li.appendChild(subDiv);
-            }
-
-            li.addEventListener('mousedown', (e: MouseEvent) => {
+        if (this.config?.onOpenExplorer) {
+            const explorerLi = document.createElement('li');
+            explorerLi.className = 'combobox-explorer-action';
+            explorerLi.innerText = this.config.explorerLabel || '🔍 Abrir Explorador...';
+            explorerLi.addEventListener('mousedown', (e: MouseEvent) => {
                 e.preventDefault();
-                this.seleccionarOpcion(opt);
+                const textoParcial = this.selectedOption ? '' : this.input.value.trim();
+                this.cerrarDesplegable();
+                this.config?.onOpenExplorer?.(textoParcial);
             });
-
-            this.dropdown.appendChild(li);
-        });
+            this.dropdown.appendChild(explorerLi);
+        }
     }
 
     private actualizarHighlight(): void {
@@ -304,6 +396,7 @@ class SearchableCombobox<T = any> {
     private seleccionarOpcion(opt: ComboboxOption<T>): void {
         this.selectedOption = opt;
         this.input.value = opt.label;
+        this.actualizarBotonLimpiar();
         this.cerrarDesplegable();
         if (this.onSelectCallback) {
             this.onSelectCallback(opt);
@@ -431,14 +524,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnExportarPdf?.addEventListener('click', descargarReportePdf);
 
     // Eventos del Filtro de Cliente (Explorer)
-    filtroCliente?.addEventListener('click', abrirExplorerClientes);
+    filtroCliente?.addEventListener('click', () => abrirExplorerClientes('filtro'));
     btnLimpiarFiltroCliente?.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
         limpiarSeleccionFiltroCliente();
     });
 
     // Eventos del Filtro de Artículo (Explorer)
-    filtroArticulo?.addEventListener('click', abrirExplorerArticulos);
+    filtroArticulo?.addEventListener('click', () => abrirExplorerArticulos('filtro'));
     btnLimpiarFiltroArticulo?.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
         limpiarSeleccionFiltroArticulo();
@@ -531,12 +624,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnPageLast?.addEventListener('click', () => irAPagina(totalPaginas - 1));
 });
 
+function obtenerIdCondicionIvaConsumidorFinal(): number {
+    const cond = catalogoCondicionesIva.find(c => normalizarTexto(c.nombre).includes('consumidor final'));
+    return cond ? cond.id : 1;
+}
+
 /**
  * Inicializa todos los desplegables buscables (SearchableCombobox)
  */
 function inicializarComboboxes(): void {
     comboFiltroCondicionIva = new SearchableCombobox<CatalogoItem>('combo-filtro-condicion-iva');
-    comboAltaCliente = new SearchableCombobox<ClienteDetalleDTO>('combo-alta-cliente');
+    comboAltaCliente = new SearchableCombobox<ClienteDetalleDTO>(
+        'combo-alta-cliente',
+        undefined,
+        {
+            maxInitialSuggestions: 1,
+            explorerLabel: '🔍 Abrir Explorador de Clientes...',
+            onOpenExplorer: (termino) => {
+                abrirExplorerClientes('factura', termino);
+            },
+            onClear: () => {
+                if (!comboAltaCondicionIva.getSelectedId()) {
+                    comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+                }
+            }
+        }
+    );
     comboAltaCondicionIva = new SearchableCombobox<CatalogoItem>('combo-alta-condicion-iva');
     comboAltaPuntoVenta = new SearchableCombobox<CatalogoItem>('combo-alta-punto-venta');
 
@@ -547,13 +660,26 @@ function inicializarComboboxes(): void {
 
     comboAltaTipoMoneda = new SearchableCombobox<CatalogoItem>('combo-alta-tipo-moneda');
 
-    // Desplegable de Artículos: muestra el nombre del artículo pero guarda el objeto ListaPrecioArticulo
-    comboItemArticulo = new SearchableCombobox<ListaPrecioArticuloDTO>('combo-item-articulo', (opcion) => {
-        lpaSeleccionadoActual = opcion.raw;
-        if (!inputItemDesc.value.trim()) {
-            inputItemDesc.value = opcion.raw.articuloDenominacion;
+    // Desplegable de Artículos: muestra sugerencia o autocompleta al escribir y permite abrir el Explorer
+    comboItemArticulo = new SearchableCombobox<ListaPrecioArticuloDTO>(
+        'combo-item-articulo',
+        (opcion) => {
+            lpaSeleccionadoActual = opcion.raw;
+            if (!inputItemDesc.value.trim()) {
+                inputItemDesc.value = opcion.raw.articuloDenominacion;
+            }
+        },
+        {
+            maxInitialSuggestions: 2,
+            explorerLabel: '🔍 Abrir Explorador de Artículos...',
+            onOpenExplorer: (termino) => {
+                abrirExplorerArticulos('factura', termino);
+            },
+            onClear: () => {
+                lpaSeleccionadoActual = null;
+            }
         }
-    });
+    );
 
     comboArticuloMarca = new SearchableCombobox<CatalogoItem>('combo-articulo-marca');
     comboArticuloRubro = new SearchableCombobox<CatalogoItem>('combo-articulo-rubro');
@@ -631,8 +757,12 @@ async function sincronizarCatalogosDesdeServidor(): Promise<void> {
 // EXPLORER DE CLIENTES (BÚSQUEDA POR NOMBRE O CUIT/CUIL)
 // =========================================================
 
-async function abrirExplorerClientes(): Promise<void> {
+async function abrirExplorerClientes(contexto: 'filtro' | 'factura' = 'filtro', textoInicial: string = ''): Promise<void> {
+    contextoExplorerClientes = contexto;
     formExplorerClientes?.reset();
+    if (textoInicial && inputExplorerNombre) {
+        inputExplorerNombre.value = textoInicial;
+    }
     modalExplorerClientes.style.display = 'flex';
     await ejecutarBusquedaExplorerClientes();
     inputExplorerNombre?.focus();
@@ -645,6 +775,7 @@ function cerrarExplorerClientes(): void {
 async function ejecutarBusquedaExplorerClientes(): Promise<void> {
     const nombre = inputExplorerNombre?.value.trim() || '';
     const cuit = inputExplorerCuit?.value.trim().replace(/[^0-9]/g, '') || '';
+    const esSugerenciaInicial = !nombre && !cuit;
 
     let resultados: ClienteDetalleDTO[] = [];
 
@@ -662,24 +793,56 @@ async function ejecutarBusquedaExplorerClientes(): Promise<void> {
         });
     }
 
-    renderizarTablaExplorerClientes(resultados);
+    renderizarTablaExplorerClientes(resultados, esSugerenciaInicial);
 }
 
-function renderizarTablaExplorerClientes(clientes: ClienteDetalleDTO[]): void {
+function renderizarTablaExplorerClientes(clientes: ClienteDetalleDTO[], esSugerenciaInicial: boolean = false): void {
     tablaExplorerClientesBody.innerHTML = '';
 
-    if (!clientes || clientes.length === 0) {
-        tablaExplorerClientesBody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center text-muted">
-                    No se encontraron clientes con esos criterios.
-                </td>
-            </tr>
+    if (contextoExplorerClientes === 'factura' && esSugerenciaInicial) {
+        const trCf = document.createElement('tr');
+        trCf.innerHTML = `
+            <td><strong>Consumidor Final</strong> <span class="badge-lista">Por defecto</span></td>
+            <td>-</td>
+            <td>Venta sin cliente nominado</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-outline btn-sm btn-elegir-consumidor-final">✓ Consumidor Final</button>
+            </td>
         `;
+        trCf.querySelector('.btn-elegir-consumidor-final')?.addEventListener('click', () => {
+            comboAltaCliente.clear();
+            if (!comboAltaCondicionIva.getSelectedId()) {
+                comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
+            }
+            cerrarExplorerClientes();
+        });
+        tablaExplorerClientesBody.appendChild(trCf);
+    }
+
+    if (!clientes || clientes.length === 0) {
+        const trEmpty = document.createElement('tr');
+        trEmpty.innerHTML = `
+            <td colspan="4" class="text-center text-muted">
+                No se encontraron clientes con esos criterios.
+            </td>
+        `;
+        tablaExplorerClientesBody.appendChild(trEmpty);
         return;
     }
 
-    clientes.forEach(c => {
+    if (esSugerenciaInicial) {
+        const trHint = document.createElement('tr');
+        trHint.innerHTML = `
+            <td colspan="4" class="explorer-hint-cell">
+                💡 Sugerencia inicial — empiece a escribir Nombre o CUIT arriba para autocompletar clientes.
+            </td>
+        `;
+        tablaExplorerClientesBody.appendChild(trHint);
+    }
+
+    const listaMostrar = esSugerenciaInicial ? clientes.slice(0, 1) : clientes;
+
+    listaMostrar.forEach(c => {
         const nombreMostrar = c.denominacion || c.nombre || '-';
         const cuitMostrar = c.cuitCuil || c.cuit || '-';
 
@@ -710,6 +873,18 @@ function renderizarTablaExplorerClientes(clientes: ClienteDetalleDTO[]): void {
 }
 
 function seleccionarClienteDesdeExplorer(cliente: ClienteDetalleDTO): void {
+    const existe = catalogoClientes.some(c => c.id === cliente.id);
+    if (!existe) {
+        catalogoClientes.push(cliente);
+        poblarOpcionesComboboxes();
+    }
+
+    if (contextoExplorerClientes === 'factura') {
+        comboAltaCliente.setSelectedById(cliente.id, true);
+        cerrarExplorerClientes();
+        return;
+    }
+
     const nombre = cliente.denominacion || cliente.nombre;
     filtroCliente.value = nombre;
     if (btnLimpiarFiltroCliente) {
@@ -731,8 +906,15 @@ function limpiarSeleccionFiltroCliente(): void {
 // EXPLORER DE ARTÍCULOS (FILTRAR POR TIPO DE LISTA, ARTÍCULO O AMBOS)
 // =========================================================
 
-async function abrirExplorerArticulos(): Promise<void> {
+async function abrirExplorerArticulos(contexto: 'filtro' | 'factura' = 'filtro', textoInicial: string = ''): Promise<void> {
+    contextoExplorerArticulos = contexto;
     formExplorerArticulos?.reset();
+    if (contexto === 'factura' && selectExplorerArticuloLista) {
+        selectExplorerArticuloLista.value = String(listaPrecioSeleccionadaId);
+    }
+    if (textoInicial && inputExplorerArticuloTexto) {
+        inputExplorerArticuloTexto.value = textoInicial;
+    }
     modalExplorerArticulos.style.display = 'flex';
     await ejecutarBusquedaExplorerArticulos();
     inputExplorerArticuloTexto?.focus();
@@ -746,6 +928,7 @@ async function ejecutarBusquedaExplorerArticulos(): Promise<void> {
     const listaVal = selectExplorerArticuloLista?.value || '';
     const listaPrecioId = listaVal ? parseInt(listaVal, 10) : undefined;
     const textoArticulo = inputExplorerArticuloTexto?.value.trim() || '';
+    const esSugerenciaInicial = !textoArticulo;
 
     let resultados: ListaPrecioArticuloDTO[] = [];
 
@@ -762,10 +945,10 @@ async function ejecutarBusquedaExplorerArticulos(): Promise<void> {
         });
     }
 
-    renderizarTablaExplorerArticulos(resultados);
+    renderizarTablaExplorerArticulos(resultados, esSugerenciaInicial);
 }
 
-function renderizarTablaExplorerArticulos(instancias: ListaPrecioArticuloDTO[]): void {
+function renderizarTablaExplorerArticulos(instancias: ListaPrecioArticuloDTO[], esSugerenciaInicial: boolean = false): void {
     tablaExplorerArticulosBody.innerHTML = '';
 
     if (!instancias || instancias.length === 0) {
@@ -779,7 +962,19 @@ function renderizarTablaExplorerArticulos(instancias: ListaPrecioArticuloDTO[]):
         return;
     }
 
-    instancias.forEach(lpa => {
+    if (esSugerenciaInicial) {
+        const trHint = document.createElement('tr');
+        trHint.innerHTML = `
+            <td colspan="5" class="explorer-hint-cell">
+                💡 Sugerencias iniciales — empiece a escribir nombre o código del artículo arriba para autocompletar.
+            </td>
+        `;
+        tablaExplorerArticulosBody.appendChild(trHint);
+    }
+
+    const listaMostrar = esSugerenciaInicial ? instancias.slice(0, 2) : instancias;
+
+    listaMostrar.forEach(lpa => {
         const codigo = lpa.articuloCodigo || '-';
         const nombre = lpa.articuloDenominacion || '-';
         const tipoLista = lpa.listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
@@ -807,7 +1002,23 @@ function renderizarTablaExplorerArticulos(instancias: ListaPrecioArticuloDTO[]):
     });
 }
 
-function seleccionarArticuloDesdeExplorer(lpa: ListaPrecioArticuloDTO): void {
+async function seleccionarArticuloDesdeExplorer(lpa: ListaPrecioArticuloDTO): Promise<void> {
+    if (contextoExplorerArticulos === 'factura') {
+        if (lpa.listaPrecioId && lpa.listaPrecioId !== listaPrecioSeleccionadaId) {
+            comboAltaListaPrecio.setSelectedById(lpa.listaPrecioId, false);
+            await cambiarListaPrecioActiva(lpa.listaPrecioId);
+        }
+        const existeLpa = catalogoListaPrecioArticulos.some(x => x.id === lpa.id);
+        if (!existeLpa) {
+            catalogoListaPrecioArticulos.push(lpa);
+            actualizarOpcionesArticulosSegunLista(listaPrecioSeleccionadaId);
+        }
+        comboItemArticulo.setSelectedById(lpa.id, true);
+        cerrarExplorerArticulos();
+        inputItemCant?.focus();
+        return;
+    }
+
     const tipoLista = lpa.listaPrecioId === 2 ? 'Mayorista' : 'Minorista';
     filtroListaPrecioArticuloId = lpa.id;
     filtroArticulo.value = `${lpa.articuloDenominacion} (${tipoLista})`;
@@ -885,9 +1096,12 @@ async function manejarGuardarNuevoCliente(e: Event): Promise<void> {
         // Si el formulario de factura está abierto, seleccionar automáticamente el nuevo cliente
         if (modalFactura && modalFactura.style.display !== 'none') {
             comboAltaCliente.setSelectedById(clienteCreado.id, true);
+            if (modalExplorerClientes && modalExplorerClientes.style.display !== 'none' && contextoExplorerClientes === 'factura') {
+                cerrarExplorerClientes();
+            }
         }
 
-        // Si el Explorer de clientes está abierto, refrescar su tabla
+        // Si el Explorer de clientes sigue abierto (ej. en modo filtro), refrescar su tabla
         if (modalExplorerClientes && modalExplorerClientes.style.display !== 'none') {
             await ejecutarBusquedaExplorerClientes();
         }
@@ -1016,9 +1230,12 @@ async function manejarGuardarNuevoArticulo(e: Event): Promise<void> {
             if (lpaParaListaActiva) {
                 comboItemArticulo.setSelectedById(lpaParaListaActiva.id, true);
             }
+            if (modalExplorerArticulos && modalExplorerArticulos.style.display !== 'none' && contextoExplorerArticulos === 'factura') {
+                cerrarExplorerArticulos();
+            }
         }
 
-        // Si el Explorer de artículos está abierto, refrescar su tabla
+        // Si el Explorer de artículos sigue abierto (ej. en modo filtro), refrescar su tabla
         if (modalExplorerArticulos && modalExplorerArticulos.style.display !== 'none') {
             await ejecutarBusquedaExplorerArticulos();
         }
@@ -1130,7 +1347,7 @@ async function abrirFormularioAlta(): Promise<void> {
     lpaSeleccionadoActual = null;
 
     comboAltaCliente.clear();
-    comboAltaCondicionIva.clear();
+    comboAltaCondicionIva.setSelectedById(obtenerIdCondicionIvaConsumidorFinal(), false);
     comboAltaPuntoVenta.clear();
     comboItemArticulo.clear();
 
@@ -1187,8 +1404,12 @@ async function abrirFormularioEdicion(facturaResumen: FacturaReporteDTO): Promis
         comboAltaListaPrecio.setSelectedById(listaIdFactura, false);
         await cambiarListaPrecioActiva(listaIdFactura);
 
-        comboAltaCliente.setSelectedById(factura.clienteId ?? 1, false);
-        comboAltaCondicionIva.setSelectedById(factura.condicionIvaId ?? 1, false);
+        if (factura.clienteId) {
+            comboAltaCliente.setSelectedById(factura.clienteId, false);
+        } else {
+            comboAltaCliente.clear();
+        }
+        comboAltaCondicionIva.setSelectedById(factura.condicionIvaId ?? obtenerIdCondicionIvaConsumidorFinal(), false);
         comboAltaPuntoVenta.setSelectedById(factura.puntoVentaId ?? 1, false);
         comboAltaTipoMoneda.setSelectedById(factura.tipoMonedaId ?? 1, false);
 
@@ -1372,14 +1593,11 @@ async function manejarGuardarFactura(e: Event): Promise<void> {
     }
 
     const clienteId = comboAltaCliente.getSelectedId();
-    const condicionIvaId = comboAltaCondicionIva.getSelectedId();
+    const condicionIvaSeleccionada = comboAltaCondicionIva.getSelectedId();
+    const condicionIvaId = condicionIvaSeleccionada ?? (!clienteId ? obtenerIdCondicionIvaConsumidorFinal() : undefined);
     const puntoVentaId = comboAltaPuntoVenta.getSelectedId();
     const tipoMonedaId = comboAltaTipoMoneda.getSelectedId(1) ?? 1;
 
-    if (!clienteId) {
-        alert('Seleccione un Cliente válido de la lista desplegable.');
-        return;
-    }
     if (!condicionIvaId) {
         alert('Seleccione una Condición de IVA válida de la lista desplegable.');
         return;
@@ -1393,7 +1611,7 @@ async function manejarGuardarFactura(e: Event): Promise<void> {
     const esEdicion = idEdicion !== null && !isNaN(idEdicion) && idEdicion > 0;
 
     const payload: FacturaRequestDTO = {
-        clienteId: clienteId,
+        clienteId: clienteId ?? null,
         condicionIvaId: condicionIvaId,
         puntoVentaId: puntoVentaId,
         tipoMonedaId: tipoMonedaId,

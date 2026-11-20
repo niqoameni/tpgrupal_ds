@@ -176,16 +176,18 @@
 
                     <div class="form-group">
                         <div class="label-with-action">
-                            <label for="alta-cliente-id">Cliente: *</label>
+                            <label for="alta-cliente-id">Cliente: <span class="label-hint">(vacío = Consumidor Final)</span></label>
                             <button type="button" id="btn-nuevo-cliente-factura" class="btn-link-inline">
                                 + Nuevo Cliente
                             </button>
                         </div>
-                        <div class="combobox-container" id="combo-alta-cliente">
-                            <input type="text" id="alta-cliente-id" class="combobox-input" required autocomplete="off"
-                                placeholder="Escribir o elegir cliente...">
-                            <button type="button" class="combobox-arrow" tabindex="-1"
-                                aria-label="Desplegar clientes">▾</button>
+                        <div class="combobox-container combobox-with-explorer" id="combo-alta-cliente">
+                            <input type="text" id="alta-cliente-id" class="combobox-input" autocomplete="off"
+                                placeholder="Consumidor Final (escribir o explorar...)">
+                            <button type="button" id="btn-limpiar-alta-cliente" class="combobox-clear-btn"
+                                title="Dejar sin cliente (Consumidor Final)" style="display: none;">&times;</button>
+                            <button type="button" id="btn-explorer-alta-cliente" class="combobox-explorer-btn"
+                                title="Abrir Explorador de Clientes" aria-label="Abrir Explorador de Clientes">🔍</button>
                             <ul class="combobox-dropdown"></ul>
                         </div>
                     </div>
@@ -250,11 +252,13 @@
                                     + Nuevo Artículo
                                 </button>
                             </div>
-                            <div class="combobox-container" id="combo-item-articulo">
+                            <div class="combobox-container combobox-with-explorer" id="combo-item-articulo">
                                 <input type="text" id="item-articulo-id" class="combobox-input" autocomplete="off"
-                                    placeholder="Escribir o elegir artículo...">
-                                <button type="button" class="combobox-arrow" tabindex="-1"
-                                    aria-label="Desplegar artículos">▾</button>
+                                    placeholder="Escribir o explorar artículo...">
+                                <button type="button" id="btn-limpiar-item-articulo" class="combobox-clear-btn"
+                                    title="Quitar artículo seleccionado" style="display: none;">&times;</button>
+                                <button type="button" id="btn-explorer-item-articulo" class="combobox-explorer-btn"
+                                    title="Abrir Explorador de Artículos" aria-label="Abrir Explorador de Artículos">🔍</button>
                                 <ul class="combobox-dropdown"></ul>
                             </div>
                         </div>
@@ -565,7 +569,7 @@
         </div>
     </div>
 
-    <script type="module" src="dist/app.js?v=20261112_4"></script>
+    <script type="module" src="dist/app.js?v=20261119_1"></script>
 </body>
 
 </html>

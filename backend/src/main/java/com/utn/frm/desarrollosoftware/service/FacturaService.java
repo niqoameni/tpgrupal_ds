@@ -464,21 +464,25 @@ public class FacturaService {
     public FacturaReporteDTO crear(FacturaRequestDTO request) {
         log.info("Iniciando creación de factura...");
 
-        if (request.getClienteId() == null) {
-            throw new IllegalArgumentException("Debe seleccionar un cliente.");
-        }
-        if (request.getCondicionIvaId() == null) {
-            throw new IllegalArgumentException("Debe seleccionar una condición de IVA.");
-        }
         if (request.getPuntoVentaId() == null) {
             throw new IllegalArgumentException("Debe seleccionar un punto de venta.");
         }
 
-        Cliente cliente = clienteRepository.findById(request.getClienteId())
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + request.getClienteId()));
+        Cliente cliente = null;
+        if (request.getClienteId() != null) {
+            cliente = clienteRepository.findById(request.getClienteId())
+                    .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + request.getClienteId()));
+        }
 
-        CondicionIva condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
-                .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
+        CondicionIva condicionIva;
+        if (request.getCondicionIvaId() != null) {
+            condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
+        } else if (cliente == null) {
+            condicionIva = obtenerCondicionIvaConsumidorFinal();
+        } else {
+            throw new IllegalArgumentException("Debe seleccionar una condición de IVA.");
+        }
 
         PuntoVenta puntoVenta = puntoVentaRepository.findById(request.getPuntoVentaId())
                 .orElseThrow(() -> new IllegalArgumentException("Punto de Venta no encontrado con ID: " + request.getPuntoVentaId()));
@@ -554,12 +558,16 @@ public class FacturaService {
             Cliente cliente = clienteRepository.findById(request.getClienteId())
                     .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + request.getClienteId()));
             factura.setCliente(cliente);
+        } else {
+            factura.setCliente(null);
         }
 
         if (request.getCondicionIvaId() != null) {
             CondicionIva condicionIva = condicionIvaRepository.findById(request.getCondicionIvaId())
                     .orElseThrow(() -> new IllegalArgumentException("Condición de IVA no encontrada con ID: " + request.getCondicionIvaId()));
             factura.setCondicionIva(condicionIva);
+        } else if (request.getClienteId() == null) {
+            factura.setCondicionIva(obtenerCondicionIvaConsumidorFinal());
         }
 
         if (request.getPuntoVentaId() != null) {
@@ -655,6 +663,20 @@ public class FacturaService {
         detalle.setPrecioUnitario(lpa.getPrecioVenta());
         detalle.calcularImportes();
         return detalle;
+    }
+
+    private CondicionIva obtenerCondicionIvaConsumidorFinal() {
+        for (CondicionIva ci : condicionIvaRepository.findAll()) {
+            if (ci.getFechaBaja() != null) continue;
+            if (ci.getDenominacion() != null && ci.getDenominacion().toLowerCase().contains("consumidor final")) {
+                return ci;
+            }
+            if (ci.getCodigoAfip() == 5) {
+                return ci;
+            }
+        }
+        return condicionIvaRepository.findById(1L)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la Condición de IVA 'Consumidor Final'."));
     }
 
     private Usuario obtenerUsuarioParaAuditoria(String username) {
